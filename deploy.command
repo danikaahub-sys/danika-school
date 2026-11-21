@@ -31,7 +31,13 @@ die(){ printf "\n\033[1;31m!! %s\033[0m\n" "$1"; pause "Press Enter to close..."
 # This script rewrites docker/nginx.conf after the first check; later calls
 # must ignore that generated host block.
 verify_main() {
-  git fetch -q origin main || die "Cannot refresh origin/main."
+  # GitHub SSH from this path drops connections; retry like VPS upload.
+  fetch_ok=0
+  for _ in 1 2 3 4 5 6 7 8; do
+    if git fetch -q origin main; then fetch_ok=1; break; fi
+    sleep 4
+  done
+  [ "$fetch_ok" = 1 ] || die "Cannot refresh origin/main."
   [ "$(git branch --show-current)" = main ] || die "Deploy from main only."
   dirty="$(git status --porcelain --untracked-files=normal | awk '$NF != "docker/nginx.conf"')"
   [ -z "$dirty" ] || die "Source checkout is dirty."
