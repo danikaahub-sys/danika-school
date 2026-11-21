@@ -15,3 +15,5 @@ storybook
 *.md
 .DS_Store
 .git
+.github
+e2e

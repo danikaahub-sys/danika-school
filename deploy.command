@@ -167,14 +167,17 @@ pause "Review the changelog above, then press Enter to pack and deploy (or Ctrl-
 verify_main
 say "Packing source"
 BUNDLE=".deploy-src.tar.gz"
-COPYFILE_DISABLE=1 tar czf "$BUNDLE" \
+COPYFILE_DISABLE=1 tar --no-xattrs --no-mac-metadata -czf "$BUNDLE" \
   --exclude='node_modules' --exclude='.git' --exclude='dist' --exclude='build' \
   --exclude='.next' --exclude='coverage' --exclude='.pnpm-store' \
   --exclude='*.apk' --exclude='.deploy-*' \
   --exclude='.env' --exclude='.env.*' \
   --exclude='deploy/prod.env' --exclude='deploy/prod.local.env' \
-  --exclude='website/local.db' --exclude='.DS_Store' \
+  --exclude='website/local.db' --exclude='.DS_Store' --exclude='._*' \
   --exclude='*.tsbuildinfo' \
+  --exclude='.storybook' --exclude='storybook' \
+  --exclude='website/tests' --exclude='server/test' \
+  --exclude='.github' \
   server website school docker deploy
 echo "Source size: $(du -h "$BUNDLE" | cut -f1)"
 
@@ -217,7 +220,8 @@ rssh "tar -xOf '$REMOTE_DIR/src.tar.gz' deploy/preserve-runtime-env.py > '$REMOT
 verify_main
 say "Building images ON the server"
 # Sequential on purpose: this VPS also runs Pinara and Marymore. Parallel
-# Nest + Next builds have starved the other sites.
+# Nest + Next builds have starved the other sites. nice + BuildKit
+# max-parallelism=1 keeps Next from taking every core during npm/next build.
 #
 # BUILD_ID + flock: two Macs (or a killed waiter + a retry) must not overlap.
 # Tokenized build.done ignores foreign markers; flock refuses a second packer.
@@ -231,12 +235,14 @@ echo \"\$(date -Is) extract\"
 rm -rf src && mkdir -p src && tar xzf src.tar.gz -C src
 cd src
 export DOCKER_BUILDKIT=1
+export BUILDKIT_MAX_PARALLELISM=1
+DK=\"sudo nice -n 10 docker build --label org.opencontainers.image.revision=$DEPLOY_SHA --provenance=false --sbom=false\"
 
 echo \"\$(date -Is) api build\"
-sudo docker build --label org.opencontainers.image.revision=$DEPLOY_SHA --provenance=false --sbom=false -t danika-api:latest -f server/Dockerfile server
+\$DK --target production -t danika-api:latest -f server/Dockerfile server
 
 echo \"\$(date -Is) website build\"
-sudo docker build --label org.opencontainers.image.revision=$DEPLOY_SHA --provenance=false --sbom=false \\
+\$DK \\
   --build-arg NEXT_PUBLIC_APP_URL=__NEXT_PUBLIC_APP_URL__ \\
   --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=__NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY__ \\
   --build-arg NEXT_PUBLIC_LOGGING_LEVEL=__NEXT_PUBLIC_LOGGING_LEVEL__ \\
@@ -244,12 +250,17 @@ sudo docker build --label org.opencontainers.image.revision=$DEPLOY_SHA --proven
   -t danika-website:latest -f website/Dockerfile website
 
 echo \"\$(date -Is) school build\"
-sudo docker build --label org.opencontainers.image.revision=$DEPLOY_SHA --provenance=false --sbom=false \\
+\$DK \\
   --build-arg VITE_API_URL=__VITE_API_URL__ \\
   -t danika-school:latest -f school/Dockerfile school
 
 echo \"\$(date -Is) edge build\"
-sudo docker build --label org.opencontainers.image.revision=$DEPLOY_SHA --provenance=false --sbom=false -t danika-edge:latest -f docker/edge.Dockerfile docker
+\$DK -t danika-edge:latest -f docker/edge.Dockerfile docker
+
+echo \"\$(date -Is) prune\"
+rm -rf \"\$ROOT/src\"
+sudo docker image prune -f >/dev/null
+sudo docker builder prune -f --keep-storage 2GB >/dev/null || true
 
 echo \"\$(date -Is) images ready\"
 BUILDEOF
@@ -325,10 +336,12 @@ if ! sudo docker inspect -f '{{.State.Running}}' danika-redis 2>/dev/null | grep
   sudo docker rm -f danika-redis 2>/dev/null || true
   if [ -n \"\$REDIS_PASS\" ]; then
     sudo docker run -d --name danika-redis --network danika --network-alias redis --restart unless-stopped \\
+      --memory 256m --cpus 0.5 --pids-limit 128 \\
       -v danika-redis-data:/data \\
       redis:7-alpine redis-server --appendonly yes --requirepass \"\$REDIS_PASS\"
   else
     sudo docker run -d --name danika-redis --network danika --network-alias redis --restart unless-stopped \\
+      --memory 256m --cpus 0.5 --pids-limit 128 \\
       -v danika-redis-data:/data \\
       redis:7-alpine redis-server --appendonly yes
   fi
@@ -336,16 +349,19 @@ fi
 
 # Prove the new image can reach Postgres, then migrate, before stopping the live API.
 sudo docker run --rm --network danika $DNS_FLAGS \\
+  --memory 256m --cpus 0.5 \\
   --env-file '$REMOTE_DIR/prod.env' --entrypoint node danika-api:latest \\
   --input-type=module -e 'import pg from \"pg\"; const c = new pg.Client({connectionString:process.env.DATABASE_URL,connectionTimeoutMillis:10000}); await c.connect(); await c.query(\"SELECT 1\"); await c.end();'
 
 sudo docker run --rm --network danika $DNS_FLAGS \\
+  --memory 512m --cpus 1 --pids-limit 256 \\
   --env-file '$REMOTE_DIR/prod.env' danika-api:latest \\
   true
 
 sudo docker stop -t 20 danika-api 2>/dev/null || true
 sudo docker rm -f danika-api 2>/dev/null || true
 sudo docker run -d --name danika-api --network danika --network-alias api --restart unless-stopped \\
+  --memory 768m --cpus 1 --pids-limit 256 \\
   $DNS_FLAGS \\
   --env-file '$REMOTE_DIR/prod.env' \\
   danika-api:latest
@@ -353,6 +369,7 @@ sudo docker run -d --name danika-api --network danika --network-alias api --rest
 sudo docker stop -t 20 danika-website 2>/dev/null || true
 sudo docker rm -f danika-website 2>/dev/null || true
 sudo docker run -d --name danika-website --network danika --network-alias website --restart unless-stopped \\
+  --memory 512m --cpus 1 --pids-limit 256 \\
   $DNS_FLAGS \\
   --env-file '$REMOTE_DIR/prod.env' \\
   -e PORT=3000 -e HOSTNAME=0.0.0.0 \\
@@ -361,10 +378,12 @@ sudo docker run -d --name danika-website --network danika --network-alias websit
 sudo docker stop -t 10 danika-school 2>/dev/null || true
 sudo docker rm -f danika-school 2>/dev/null || true
 sudo docker run -d --name danika-school --network danika --network-alias school --restart unless-stopped \\
+  --memory 128m --cpus 0.25 --pids-limit 64 \\
   danika-school:latest
 
 sudo docker rm -f danika-edge 2>/dev/null || true
 sudo docker run -d --name danika-edge --network danika --restart unless-stopped \\
+  --memory 64m --cpus 0.25 --pids-limit 64 \\
   -p ${EDGE_PORT}:80 danika-edge:latest
 
 api_ok=0

@@ -26,8 +26,9 @@ Hard rules:
 
 - Never publish host `:80`. `EDGE_PORT` defaults to 8081. Pinara's nginx is the public multiplexer.
 - Never `ufw reset`. Init only **adds** TCP 8081 (Pinara proxies loopback to it).
-- Builds run **one image at a time** so Nest + Next do not starve the other sites.
-- `docker ps` is filtered to `danika`. Redis is left running unless it is missing.
+- Builds run **one image at a time**, `nice`d, with Next heap capped at 1.5G (not 4G) so Pinara/Marymore stay up.
+- Docker install drops Storybook/Playwright/ESLint; extracted `src/` is deleted after a successful build; only dangling images are pruned (`docker image prune`, never `system prune -a`).
+- Running Danika containers have memory/CPU limits. `docker ps` is filtered to `danika`. Redis is left running unless it is missing.
 
 ### Hosts
 

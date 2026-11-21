@@ -1,9 +1,8 @@
 #!/bin/sh
 set -e
 
-echo "Generating Prisma client..."
-npm run db:generate
-
+# Client is generated at image build. Re-generating on every start spikes RAM
+# on a shared VPS.
 echo "Running database migrations..."
 npm run db:migrate-prod
 
