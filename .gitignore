@@ -35,6 +35,11 @@ coverage
 .vite
 .cache
 
+# Local agent / editor guidance — do not ship
+.agent/
+.agents/
+.cursor/
+
 # OS / editor
 .DS_Store
 .idea
