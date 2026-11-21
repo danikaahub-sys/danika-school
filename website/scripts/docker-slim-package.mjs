@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const DROP =
-  /eslint|prettier|vitest|playwright|storybook|knip|lefthook|husky|commitlint|semantic-release|checkly|pglite|i18n-check|spotlight|bundle-analyzer|chromatic|lint-staged|npm-run-all|devtools|^rimraf$|^cross-env$|^dotenv-cli$/;
+  /eslint|prettier|vitest|playwright|storybook|knip|lefthook|husky|commitlint|semantic-release|checkly|pglite|i18n-check|spotlight|chromatic|lint-staged|npm-run-all|devtools|^rimraf$|^cross-env$|^dotenv-cli$/;
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 const before = Object.keys(pkg.devDependencies || {}).length;
