@@ -1,0 +1,24 @@
+# Directories
+.idea/
+node_modules/
+dist/
+tmp/
+temp/
+coverage/
+
+# environment
+.env
+config.yaml
+config.yml
+npm-debug.log*
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# yalc
+.yalc
+yalc.lock

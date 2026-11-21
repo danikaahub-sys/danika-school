@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+coverage
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+local.db
+tests
+playwright.config.ts
+checkly.config.ts
+storybook
+.storybook
+*.md
+.DS_Store
+.git

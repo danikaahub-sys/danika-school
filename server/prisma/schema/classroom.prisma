@@ -1,0 +1,149 @@
+enum SessionStatus {
+  SCHEDULED
+  DRAFT
+  SUBMITTED
+}
+
+enum AttendanceStatus {
+  UNMARKED
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum MarkStatus {
+  DRAFT
+  PUBLISHED
+  MISSING
+  EXEMPT
+}
+
+model TeachingSession {
+  id           String        @id @default(uuid())
+  schoolId     String        @map("school_id")
+  assignmentId String        @map("assignment_id")
+  periodId     String        @map("period_id")
+  date         DateTime      @db.Date
+  status       SessionStatus @default(SCHEDULED)
+  note         String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  school     School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  assignment TeachingAssignment @relation(fields: [assignmentId, schoolId], references: [id, schoolId])
+  period     BellPeriod         @relation(fields: [periodId, schoolId], references: [id, schoolId])
+  attendance AttendanceRecord[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, assignmentId, date, periodId])
+  @@index([schoolId, date, status])
+  @@map("teaching_sessions")
+}
+
+model AttendanceRecord {
+  id        String           @id @default(uuid())
+  schoolId  String           @map("school_id")
+  sessionId String           @map("session_id")
+  studentId String           @map("student_id")
+  status    AttendanceStatus @default(UNMARKED)
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  school  School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  session TeachingSession @relation(fields: [sessionId, schoolId], references: [id, schoolId], onDelete: Cascade)
+  student Person          @relation(fields: [studentId, schoolId], references: [id, schoolId])
+
+  @@unique([sessionId, studentId])
+  @@index([schoolId, studentId])
+  @@map("attendance_records")
+}
+
+model StaffAttendance {
+  id        String           @id @default(uuid())
+  schoolId  String           @map("school_id")
+  personId  String           @map("person_id")
+  date      DateTime         @db.Date
+  status    AttendanceStatus @default(UNMARKED)
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId, schoolId], references: [id, schoolId])
+
+  @@unique([schoolId, personId, date])
+  @@map("staff_attendance")
+}
+
+model Homework {
+  id        String    @id @default(uuid())
+  schoolId  String    @map("school_id")
+  classId   String    @map("class_id")
+  subjectId String    @map("subject_id")
+  teacherId String    @map("teacher_id")
+  title     String
+  dueOn     DateTime  @map("due_on") @db.Date
+  published Boolean   @default(false)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  school  School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class   SchoolClass @relation(fields: [classId, schoolId], references: [id, schoolId])
+  subject Subject     @relation(fields: [subjectId, schoolId], references: [id, schoolId])
+  teacher Person      @relation(fields: [teacherId, schoolId], references: [id, schoolId])
+
+  @@index([schoolId, classId])
+  @@map("homework")
+}
+
+model DisciplineNote {
+  id        String   @id @default(uuid())
+  schoolId  String   @map("school_id")
+  studentId String   @map("student_id")
+  classId   String   @map("class_id")
+  title     String
+  date      DateTime @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+
+  school  School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student Person      @relation(fields: [studentId, schoolId], references: [id, schoolId])
+  class   SchoolClass @relation(fields: [classId, schoolId], references: [id, schoolId])
+
+  @@index([schoolId, studentId])
+  @@map("discipline_notes")
+}
+
+model Assessment {
+  id           String    @id @default(uuid())
+  schoolId     String    @map("school_id")
+  assignmentId String    @map("assignment_id")
+  title        String
+  maximum      Decimal   @db.Decimal(8, 2)
+  weight       Decimal   @db.Decimal(8, 2)
+  publishedAt  DateTime? @map("published_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  school     School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  assignment TeachingAssignment @relation(fields: [assignmentId, schoolId], references: [id, schoolId])
+  marks      Mark[]
+
+  @@unique([id, schoolId])
+  @@index([schoolId, assignmentId])
+  @@map("assessments")
+}
+
+model Mark {
+  id           String     @id @default(uuid())
+  schoolId     String     @map("school_id")
+  assessmentId String     @map("assessment_id")
+  studentId    String     @map("student_id")
+  earned       Decimal?   @db.Decimal(8, 2)
+  status       MarkStatus @default(DRAFT)
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  school     School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  assessment Assessment @relation(fields: [assessmentId, schoolId], references: [id, schoolId], onDelete: Cascade)
+  student    Person     @relation(fields: [studentId, schoolId], references: [id, schoolId])
+
+  @@unique([assessmentId, studentId])
+  @@index([schoolId, studentId])
+  @@map("marks")
+}

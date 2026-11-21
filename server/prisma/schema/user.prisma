@@ -1,0 +1,46 @@
+enum Role {
+  ADMIN
+  MEMBER
+  DEVELOPER
+}
+
+model User {
+  id           String    @id @default(uuid())
+  userName     String    @unique @map("user_name")
+  email        String?   @unique
+  passwordHash String    @map("password_hash")
+  firstName    String?   @map("first_name")
+  lastName     String?   @map("last_name")
+  isVerified   Boolean   @default(false) @map("is_verified")
+  phone        String?   @unique
+  role         Role      @default(MEMBER)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  avatar       String?
+
+  refreshSessions     RefreshSession[]
+  organizationMembers OrganizationMember[]
+  memberships         SchoolMembership[]
+  people              Person[]
+  invitationsSent     Invitation[]         @relation("InvitationInviter")
+  auditLogs           AuditLog[]
+  receiptsApproved    Receipt[]            @relation("ReceiptApprover")
+  receiptsReversed    Receipt[]            @relation("ReceiptReverser")
+
+  @@map("users")
+}
+
+model RefreshSession {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_sessions")
+}

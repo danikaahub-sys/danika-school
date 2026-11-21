@@ -1,0 +1,45 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Builds
+dist
+dist-ssr
+*.tsbuildinfo
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Deploy (SSH + live secrets). Keep samples/examples committed.
+.deploy.conf
+.deploy-*
+deploy/*.env
+!deploy/*.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Coverage / test
+coverage
+**/__screenshots__/
+.vitest-attachments/
+
+# Caches
+.turbo
+.vite
+.cache
+
+# OS / editor
+.DS_Store
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

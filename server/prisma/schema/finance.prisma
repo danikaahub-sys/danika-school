@@ -1,0 +1,87 @@
+enum ReceiptStatus {
+  PENDING
+  POSTED
+  REVERSED
+}
+
+model TuitionPlan {
+  id        String   @id @default(uuid())
+  schoolId  String   @map("school_id")
+  yearId    String   @map("year_id")
+  gradeId   String   @map("grade_id")
+  title     String
+  amountIrr BigInt   @map("amount_irr")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  school  School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  year    AcademicYear @relation(fields: [yearId, schoolId], references: [id, schoolId])
+  grade   Grade        @relation(fields: [gradeId, schoolId], references: [id, schoolId])
+  charges Charge[]
+
+  @@unique([id, schoolId])
+  @@index([schoolId, yearId, gradeId])
+  @@map("tuition_plans")
+}
+
+model ChargeBatch {
+  id        String   @id @default(uuid())
+  schoolId  String   @map("school_id")
+  yearId    String   @map("year_id")
+  title     String
+  dueOn     DateTime @map("due_on") @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+
+  school  School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  year    AcademicYear @relation(fields: [yearId, schoolId], references: [id, schoolId])
+  charges Charge[]
+
+  @@unique([id, schoolId])
+  @@index([schoolId, yearId])
+  @@map("charge_batches")
+}
+
+model Charge {
+  id        String   @id @default(uuid())
+  schoolId  String   @map("school_id")
+  yearId    String   @map("year_id")
+  studentId String   @map("student_id")
+  planId    String?  @map("plan_id")
+  batchId   String?  @map("batch_id")
+  title     String
+  amountIrr BigInt   @map("amount_irr")
+  dueOn     DateTime? @map("due_on") @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+
+  school  School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  year    AcademicYear @relation(fields: [yearId, schoolId], references: [id, schoolId])
+  student Person       @relation(fields: [studentId, schoolId], references: [id, schoolId])
+  plan    TuitionPlan? @relation(fields: [planId, schoolId], references: [id, schoolId])
+  batch   ChargeBatch? @relation(fields: [batchId, schoolId], references: [id, schoolId])
+
+  @@index([schoolId, studentId, yearId])
+  @@map("charges")
+}
+
+model Receipt {
+  id           String        @id @default(uuid())
+  schoolId     String        @map("school_id")
+  studentId    String        @map("student_id")
+  amountIrr    BigInt        @map("amount_irr")
+  status       ReceiptStatus @default(PENDING)
+  ref          String
+  date         DateTime      @db.Date
+  approvedById String?       @map("approved_by_id")
+  reversedById String?       @map("reversed_by_id")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  school     School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student    Person @relation(fields: [studentId, schoolId], references: [id, schoolId])
+  approvedBy User?  @relation("ReceiptApprover", fields: [approvedById], references: [id])
+  reversedBy User?  @relation("ReceiptReverser", fields: [reversedById], references: [id])
+
+  @@index([schoolId, studentId, status])
+  @@index([schoolId, date])
+  @@map("receipts")
+}

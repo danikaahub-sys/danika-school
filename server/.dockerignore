@@ -1,0 +1,70 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Build outputs
+dist
+build
+coverage
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Development files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Version control
+.git
+.gitignore
+
+# Documentation
+README.md
+CHANGELOG.md
+docs/
+
+# Testing
+test
+coverage
+*.test.js
+*.spec.js
+jest.config.js
+
+# Linting
+.eslintignore
+.prettierrc
+.prettierignore
+
+# Husky
+.husky
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Keep prisma/migrations in the image — docker-entrypoint runs migrate deploy.
+
+# Logs
+logs
+*.log
+lcov-report
+
+# Temporary files
+tmp
+temp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

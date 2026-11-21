@@ -1,0 +1,147 @@
+import { Test } from '@nestjs/testing';
+import { BaseRole } from '@prisma/client';
+
+import { CacheService } from 'src/common/cache/services/cache.service';
+import { DatabaseService } from 'src/common/database/services/database.service';
+import type { SchoolContext } from 'src/modules/school/access/school-context';
+import { ScopeService } from 'src/modules/school/access/scope.service';
+import { SchoolDashboardService } from 'src/modules/school/dashboard/school-dashboard.service';
+
+const ctx: SchoolContext = {
+    userId: 'u',
+    schoolId: 's',
+    membershipId: 'm',
+    personId: 'p',
+    positionId: 'pos',
+    baseRole: BaseRole.PRINCIPAL,
+    permissions: 'all',
+    permVersion: 1,
+    yearId: 'y',
+};
+
+describe('SchoolDashboardService', () => {
+    let service: SchoolDashboardService;
+    const db: Record<string, Record<string, jest.Mock>> = {
+        teachingSession: { count: jest.fn(), findMany: jest.fn() },
+        receipt: { count: jest.fn(), findMany: jest.fn() },
+        mark: { count: jest.fn(), findMany: jest.fn() },
+        importJob: { count: jest.fn() },
+        guardianLink: { count: jest.fn() },
+        homework: { findMany: jest.fn() },
+        announcement: { findMany: jest.fn() },
+        attendanceRecord: { findMany: jest.fn() },
+        schoolClass: { findMany: jest.fn() },
+    };
+    const cache = { get: jest.fn(), set: jest.fn() };
+    const scope = { classIds: jest.fn(), academicStudentIds: jest.fn() };
+
+    beforeEach(async () => {
+        const module = await Test.createTestingModule({
+            providers: [
+                SchoolDashboardService,
+                { provide: DatabaseService, useValue: db },
+                { provide: CacheService, useValue: cache },
+                { provide: ScopeService, useValue: scope },
+            ],
+        }).compile();
+        service = module.get(SchoolDashboardService);
+    });
+
+    it('returns attention counts', async () => {
+        db.teachingSession.count.mockResolvedValue(2);
+        db.receipt.count.mockResolvedValue(1);
+        db.mark.count.mockResolvedValue(3);
+        db.importJob.count.mockResolvedValue(0);
+        db.guardianLink.count.mockResolvedValue(4);
+        await expect(service.attention(ctx)).resolves.toEqual({
+            attendance: 2,
+            receipts: 1,
+            grades: 1,
+            importErrors: 0,
+            guardians: 4,
+        });
+        db.mark.count.mockResolvedValue(0);
+        await expect(service.attention(ctx)).resolves.toEqual(
+            expect.objectContaining({ grades: 0 })
+        );
+    });
+
+    it('builds home for teacher and others', async () => {
+        scope.classIds.mockResolvedValue(['c']);
+        scope.academicStudentIds.mockResolvedValue(['st']);
+        db.teachingSession.count.mockResolvedValue(0);
+        db.receipt.count.mockResolvedValue(0);
+        db.mark.count.mockResolvedValue(0);
+        db.importJob.count.mockResolvedValue(0);
+        db.guardianLink.count.mockResolvedValue(0);
+        db.teachingSession.findMany.mockResolvedValue([]);
+        db.homework.findMany.mockResolvedValue([]);
+        db.announcement.findMany.mockResolvedValue([]);
+        db.mark.findMany.mockResolvedValue([]);
+        db.schoolClass.findMany.mockResolvedValue([
+            {
+                id: 'c',
+                name: 'الف',
+                gradeId: 'g',
+                grade: { name: 'هفتم' },
+            },
+        ]);
+        await service.home({ ...ctx, baseRole: BaseRole.TEACHER });
+        scope.classIds.mockResolvedValue(['c']);
+        scope.academicStudentIds.mockResolvedValue(['st']);
+        await service.home({ ...ctx, baseRole: BaseRole.STUDENT });
+        scope.classIds.mockResolvedValue(null);
+        scope.academicStudentIds.mockResolvedValue(null);
+        await service.home(ctx);
+        db.schoolClass.findMany.mockResolvedValue([]);
+        await service.home(ctx);
+    });
+
+    it('caches chart series', async () => {
+        cache.get.mockResolvedValue([{ period: 'cached' }]);
+        await expect(service.attendanceSeries(ctx, 'day')).resolves.toEqual([
+            { period: 'cached' },
+        ]);
+        cache.get.mockResolvedValue(null);
+        db.attendanceRecord.findMany.mockResolvedValue([
+            {
+                status: 'PRESENT',
+                session: { date: new Date('2026-01-05') },
+            },
+            {
+                status: 'ABSENT',
+                session: { date: new Date('2026-01-05') },
+            },
+        ]);
+        await service.attendanceSeries(ctx, 'day');
+        await service.attendanceSeries(ctx, 'week');
+        await service.attendanceSeries(ctx, 'month');
+        db.attendanceRecord.findMany.mockResolvedValue([]);
+        await service.attendanceSeries(ctx, 'day');
+        db.receipt.findMany.mockResolvedValue([
+            { date: new Date('2026-01-01'), amountIrr: 5n },
+        ]);
+        await service.collectionsSeries(ctx);
+        db.mark.findMany.mockResolvedValue([
+            { earned: 19, assessment: { maximum: 20 } },
+            { earned: 16, assessment: { maximum: 20 } },
+            { earned: 14, assessment: { maximum: 20 } },
+            { earned: 12, assessment: { maximum: 20 } },
+            { earned: 5, assessment: { maximum: 20 } },
+            { earned: 1, assessment: { maximum: 0 } },
+        ]);
+        const dist = await service.gradeDistribution(ctx);
+        expect(dist).toEqual({ A: 1, B: 1, C: 1, D: 1, F: 2 });
+        db.schoolClass.findMany.mockResolvedValue([
+            {
+                id: 'c',
+                name: 'الف',
+                grade: { name: 'هفتم' },
+                _count: { enrollments: 23 },
+            },
+        ]);
+        await expect(service.enrollmentSeries(ctx)).resolves.toEqual([
+            { classId: 'c', label: 'هفتم الف', count: 23 },
+        ]);
+    });
+});

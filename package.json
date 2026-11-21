@@ -1,0 +1,7 @@
+{
+  "name": "danika-school",
+  "private": true,
+  "scripts": {
+    "deploy": "bash deploy.command"
+  }
+}

@@ -1,0 +1,9 @@
+# Copy to .deploy.conf (gitignored). chmod 600.
+# SSH only — app secrets live in deploy/prod.env.
+
+SSH_HOST=95.38.161.61
+SSH_USER=root
+SSH_PORT=22
+REMOTE_DIR=/opt/danika
+EDGE_PORT=8081
+SSH_PASS=

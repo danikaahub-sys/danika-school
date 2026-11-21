@@ -1,0 +1,36 @@
+{
+    "success": {
+        "memberships": "School memberships retrieved",
+        "session": "School session issued",
+        "me": "School profile retrieved",
+        "invitation": "Invitation retrieved",
+        "invitationAccepted": "Invitation accepted",
+        "organizations": "Organizations retrieved",
+        "schoolCreated": "School created"
+    },
+    "error": {
+        "membershipInvalid": "School membership is not active",
+        "globalTokenRequired": "A global access token is required",
+        "schoolTokenRequired": "A school access token is required",
+        "yearNotFound": "Academic year not found",
+        "positionNotFound": "Position not found",
+        "invitationInvalid": "Invitation is invalid or expired",
+        "invitationUsed": "Invitation has already been used",
+        "personNotFound": "Person not found",
+        "linkNotFound": "Guardian link not found",
+        "classNotFound": "Class not found",
+        "sessionNotFound": "Teaching session not found",
+        "sessionSubmitted": "Session attendance is already submitted",
+        "homeworkNotFound": "Homework not found",
+        "assessmentNotFound": "Assessment not found",
+        "assessmentPublished": "Assessment is already published",
+        "planNotFound": "Tuition plan not found",
+        "receiptNotFound": "Receipt not found",
+        "receiptNotPending": "Receipt is not pending",
+        "receiptNotPosted": "Receipt is not posted",
+        "receiptExceedsBalance": "Receipt exceeds student balance",
+        "templateNotFound": "Message template not found",
+        "notOrgOwner": "You must own this organization to create a school",
+        "userNotFound": "User not found"
+    }
+}

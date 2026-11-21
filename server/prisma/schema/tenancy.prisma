@@ -1,0 +1,96 @@
+enum MoneyUnit {
+  IRR
+  TOMAN
+}
+
+enum OrgMemberRole {
+  OWNER
+  ADMIN
+}
+
+model Organization {
+  id        String    @id @default(uuid())
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  members OrganizationMember[]
+  schools School[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String        @id @default(uuid())
+  organizationId String        @map("organization_id")
+  userId         String        @map("user_id")
+  role           OrgMemberRole @default(ADMIN)
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@map("organization_members")
+}
+
+model School {
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  name           String
+  city           String
+  moneyUnit      MoneyUnit @default(TOMAN) @map("money_unit")
+  timezone       String    @default("Asia/Tehran")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  settings     SchoolSettings?
+
+  memberships  SchoolMembership[]
+  positions    Position[]
+  invitations  Invitation[]
+  people       Person[]
+  years        AcademicYear[]
+  grades       Grade[]
+  classes      SchoolClass[]
+  enrollments  Enrollment[]
+  subjects     Subject[]
+  assignments  TeachingAssignment[]
+  periods      BellPeriod[]
+  timetable    TimetableSlot[]
+  closures     Closure[]
+  sessions     TeachingSession[]
+  attendance   AttendanceRecord[]
+  staffDays    StaffAttendance[]
+  homework     Homework[]
+  discipline   DisciplineNote[]
+  assessments  Assessment[]
+  marks        Mark[]
+  plans        TuitionPlan[]
+  chargeBatches ChargeBatch[]
+  charges      Charge[]
+  receipts     Receipt[]
+  announcements Announcement[]
+  templates    MessageTemplate[]
+  deliveries   MessageDelivery[]
+  auditLogs    AuditLog[]
+  importJobs   ImportJob[]
+  guardianLinks GuardianLink[]
+
+  @@index([organizationId])
+  @@map("schools")
+}
+
+model SchoolSettings {
+  schoolId   String  @id @map("school_id")
+  smsSender  String? @map("sms_sender")
+  locale     String  @default("fa")
+  extra      Json?
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_settings")
+}

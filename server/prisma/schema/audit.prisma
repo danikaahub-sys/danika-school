@@ -1,0 +1,46 @@
+enum ImportJobKind {
+  PEOPLE
+}
+
+enum ImportJobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model AuditLog {
+  id                 String   @id @default(uuid())
+  schoolId           String   @map("school_id")
+  actorUserId        String?  @map("actor_user_id")
+  actorMembershipId  String?  @map("actor_membership_id")
+  action             String
+  entity             String
+  entityId           String?  @map("entity_id")
+  diff               Json?
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  school     School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  actor      User?             @relation(fields: [actorUserId], references: [id])
+  membership SchoolMembership? @relation(fields: [actorMembershipId, schoolId], references: [id, schoolId])
+
+  @@index([schoolId, createdAt])
+  @@index([schoolId, entity])
+  @@map("audit_logs")
+}
+
+model ImportJob {
+  id        String          @id @default(uuid())
+  schoolId  String          @map("school_id")
+  kind      ImportJobKind
+  status    ImportJobStatus @default(PENDING)
+  totals    Json?
+  errors    Json?
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, status])
+  @@map("import_jobs")
+}

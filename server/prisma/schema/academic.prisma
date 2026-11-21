@@ -1,0 +1,176 @@
+model AcademicYear {
+  id        String    @id @default(uuid())
+  schoolId  String    @map("school_id")
+  label     String
+  startsOn  DateTime  @map("starts_on") @db.Date
+  endsOn    DateTime  @map("ends_on") @db.Date
+  isActive  Boolean   @default(false) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  school      School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes     SchoolClass[]
+  enrollments Enrollment[]
+  assignments TeachingAssignment[]
+  closures    Closure[]
+  plans       TuitionPlan[]
+  charges     Charge[]
+  chargeBatches ChargeBatch[]
+
+  @@unique([id, schoolId])
+  @@index([schoolId, isActive])
+  @@map("academic_years")
+}
+
+model Grade {
+  id        String    @id @default(uuid())
+  schoolId  String    @map("school_id")
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  school  School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes SchoolClass[]
+  plans   TuitionPlan[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, name])
+  @@map("grades")
+}
+
+model SchoolClass {
+  id        String    @id @default(uuid())
+  schoolId  String    @map("school_id")
+  yearId    String    @map("year_id")
+  gradeId   String    @map("grade_id")
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  school      School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  year        AcademicYear         @relation(fields: [yearId, schoolId], references: [id, schoolId])
+  grade       Grade                @relation(fields: [gradeId, schoolId], references: [id, schoolId])
+  enrollments Enrollment[]
+  assignments TeachingAssignment[]
+  homework    Homework[]
+  discipline  DisciplineNote[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, yearId, name])
+  @@index([schoolId, yearId, gradeId])
+  @@map("school_classes")
+}
+
+model Enrollment {
+  id        String    @id @default(uuid())
+  schoolId  String    @map("school_id")
+  yearId    String    @map("year_id")
+  classId   String    @map("class_id")
+  studentId String    @map("student_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  school  School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  year    AcademicYear @relation(fields: [yearId, schoolId], references: [id, schoolId])
+  class   SchoolClass  @relation(fields: [classId, schoolId], references: [id, schoolId])
+  student Person       @relation(fields: [studentId, schoolId], references: [id, schoolId])
+
+  @@unique([schoolId, yearId, studentId])
+  @@index([schoolId, classId])
+  @@map("enrollments")
+}
+
+model Subject {
+  id        String    @id @default(uuid())
+  schoolId  String    @map("school_id")
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  school      School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  assignments TeachingAssignment[]
+  homework    Homework[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, name])
+  @@map("subjects")
+}
+
+model TeachingAssignment {
+  id             String    @id @default(uuid())
+  schoolId       String    @map("school_id")
+  yearId         String    @map("year_id")
+  classId        String    @map("class_id")
+  subjectId      String    @map("subject_id")
+  teacherPersonId String   @map("teacher_person_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  school  School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  year    AcademicYear @relation(fields: [yearId, schoolId], references: [id, schoolId])
+  class   SchoolClass  @relation(fields: [classId, schoolId], references: [id, schoolId])
+  subject Subject      @relation(fields: [subjectId, schoolId], references: [id, schoolId])
+  teacher Person       @relation(fields: [teacherPersonId, schoolId], references: [id, schoolId])
+  slots   TimetableSlot[]
+  sessions TeachingSession[]
+  assessments Assessment[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, yearId, classId, subjectId])
+  @@index([schoolId, teacherPersonId])
+  @@map("teaching_assignments")
+}
+
+model BellPeriod {
+  id        String   @id @default(uuid())
+  schoolId  String   @map("school_id")
+  name      String
+  startTime String   @map("start_time")
+  endTime   String   @map("end_time")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  school    School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  slots     TimetableSlot[]
+  sessions  TeachingSession[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, name])
+  @@map("bell_periods")
+}
+
+model TimetableSlot {
+  id           String @id @default(uuid())
+  schoolId     String @map("school_id")
+  assignmentId String @map("assignment_id")
+  classId      String @map("class_id")
+  periodId     String @map("period_id")
+  day          Int
+
+  school     School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  assignment TeachingAssignment @relation(fields: [assignmentId, schoolId], references: [id, schoolId], onDelete: Cascade)
+  period     BellPeriod         @relation(fields: [periodId, schoolId], references: [id, schoolId])
+
+  @@unique([schoolId, classId, day, periodId])
+  @@index([schoolId, assignmentId])
+  @@map("timetable_slots")
+}
+
+model Closure {
+  id       String   @id @default(uuid())
+  schoolId String   @map("school_id")
+  yearId   String   @map("year_id")
+  date     DateTime @db.Date
+  title    String
+
+  school School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  year   AcademicYear @relation(fields: [yearId, schoolId], references: [id, schoolId])
+
+  @@unique([schoolId, yearId, date])
+  @@map("closures")
+}

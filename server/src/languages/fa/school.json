@@ -1,0 +1,36 @@
+{
+    "success": {
+        "memberships": "عضویت‌های مدرسه دریافت شد",
+        "session": "نشست مدرسه صادر شد",
+        "me": "پروفایل مدرسه دریافت شد",
+        "invitation": "دعوت‌نامه دریافت شد",
+        "invitationAccepted": "دعوت‌نامه پذیرفته شد",
+        "organizations": "سازمان‌ها دریافت شد",
+        "schoolCreated": "مدرسه ایجاد شد"
+    },
+    "error": {
+        "membershipInvalid": "عضویت مدرسه فعال نیست",
+        "globalTokenRequired": "توکن سراسری لازم است",
+        "schoolTokenRequired": "توکن مدرسه لازم است",
+        "yearNotFound": "سال تحصیلی یافت نشد",
+        "positionNotFound": "سمت یافت نشد",
+        "invitationInvalid": "دعوت‌نامه نامعتبر یا منقضی است",
+        "invitationUsed": "دعوت‌نامه قبلا استفاده شده است",
+        "personNotFound": "فرد یافت نشد",
+        "linkNotFound": "پیوند ولی یافت نشد",
+        "classNotFound": "کلاس یافت نشد",
+        "sessionNotFound": "جلسه تدریس یافت نشد",
+        "sessionSubmitted": "حضور و غیاب این جلسه ثبت نهایی شده است",
+        "homeworkNotFound": "تکلیف یافت نشد",
+        "assessmentNotFound": "ارزیابی یافت نشد",
+        "assessmentPublished": "ارزیابی قبلا منتشر شده است",
+        "planNotFound": "طرح شهریه یافت نشد",
+        "receiptNotFound": "رسید یافت نشد",
+        "receiptNotPending": "رسید در انتظار تایید نیست",
+        "receiptNotPosted": "رسید ثبت نشده است",
+        "receiptExceedsBalance": "مبلغ رسید از مانده بیشتر است",
+        "templateNotFound": "قالب پیام یافت نشد",
+        "notOrgOwner": "برای ایجاد مدرسه باید مالک این سازمان باشید",
+        "userNotFound": "کاربر یافت نشد"
+    }
+}

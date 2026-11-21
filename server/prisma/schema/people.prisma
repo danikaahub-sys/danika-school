@@ -1,0 +1,70 @@
+enum PersonKind {
+  STUDENT
+  STAFF
+  GUARDIAN
+}
+
+enum PersonStatus {
+  ACTIVE
+  INVITED
+  DEACTIVATED
+}
+
+model Person {
+  id         String       @id @default(uuid())
+  schoolId   String       @map("school_id")
+  userId     String?      @map("user_id")
+  kind       PersonKind
+  firstName  String       @map("first_name")
+  lastName   String       @map("last_name")
+  nationalId String?      @map("national_id")
+  phone      String?
+  status     PersonStatus @default(ACTIVE)
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  deletedAt  DateTime?    @map("deleted_at")
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id])
+
+  memberships         SchoolMembership[]
+  invitations         Invitation[]
+  enrollments         Enrollment[]
+  assignments         TeachingAssignment[]
+  guardianAsGuardian  GuardianLink[]       @relation("GuardianPerson")
+  guardianAsStudent   GuardianLink[]       @relation("StudentPerson")
+  attendance          AttendanceRecord[]
+  staffDays           StaffAttendance[]
+  homework            Homework[]
+  disciplineAsStudent DisciplineNote[]
+  marks               Mark[]
+  charges             Charge[]
+  receipts            Receipt[]
+  deliveries          MessageDelivery[]
+
+  @@unique([id, schoolId])
+  @@unique([schoolId, nationalId])
+  @@index([schoolId, kind, status])
+  @@index([schoolId, userId])
+  @@map("people")
+}
+
+model GuardianLink {
+  id                String    @id @default(uuid())
+  schoolId          String    @map("school_id")
+  guardianId        String    @map("guardian_id")
+  studentId         String    @map("student_id")
+  relation          String
+  academicVisible   Boolean   @default(true) @map("academic_visible")
+  financialVisible  Boolean   @default(true) @map("financial_visible")
+  verifiedAt        DateTime? @map("verified_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  guardian Person @relation("GuardianPerson", fields: [guardianId, schoolId], references: [id, schoolId], onDelete: Cascade)
+  student  Person @relation("StudentPerson", fields: [studentId, schoolId], references: [id, schoolId], onDelete: Cascade)
+
+  @@unique([schoolId, guardianId, studentId])
+  @@index([schoolId, studentId])
+  @@map("guardian_links")
+}
