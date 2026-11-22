@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from '@tanstack/react-router'
 import { ChevronDown } from 'lucide-react'
-import { Logo } from '@/assets/logo'
 import { hasPermission } from '@/features/access/permissions'
 import { useAttention } from '@/hooks/use-attention'
 import { useSession } from '@/hooks/use-session'
@@ -27,6 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { getNavGroups } from './data/sidebar-data'
 import { NavUser } from './nav-user'
+import { SchoolSwitcher } from './school-switcher'
 import { type NavGroup, type NavLink } from './types'
 
 const OPEN_KEY = 'danika.rail.open'
@@ -132,17 +132,13 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible={collapsible} variant={variant} side='right'>
       <SidebarHeader>
-        <div className='flex items-center gap-2.5 px-2 py-1.5'>
-          <span className='grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground'>
-            <Logo className='size-5' />
-          </span>
-          <div className='min-w-0 flex-1 text-start leading-tight'>
-            <div className='truncate text-sm font-bold'>{t('brand.name')}</div>
-            <div className='truncate text-[11px] text-muted-foreground'>
-              {user?.schoolName}
-            </div>
+        {collapsed ? (
+          <div className='flex justify-center p-2'>
+            <SchoolSwitcher collapsed />
           </div>
-        </div>
+        ) : (
+          <SchoolSwitcher />
+        )}
       </SidebarHeader>
 
       <SidebarContent>

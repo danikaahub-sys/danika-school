@@ -14,11 +14,32 @@ export function SelectSchool({ redirectTo }: { redirectTo?: string }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let alive = true
     listMemberships()
-      .then(setMemberships)
-      .catch(() => toast.error(t('common.error')))
-      .finally(() => setLoading(false))
-  }, [])
+      .then(async (rows) => {
+        if (!alive) return
+        setMemberships(rows)
+        const preferred = rows.find((item) => item.status === 'ACTIVE')
+        if (!preferred) return
+        try {
+          const user = await enterSchool(preferred.schoolId)
+          if (!alive) return
+          toast.success(t('auth.welcomeBack', { name: user.name }))
+          navigate({ to: safeRedirectPath(redirectTo), replace: true })
+        } catch {
+          if (alive) toast.error(t('common.error'))
+        }
+      })
+      .catch(() => {
+        if (alive) toast.error(t('common.error'))
+      })
+      .finally(() => {
+        if (alive) setLoading(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [navigate, redirectTo])
 
   async function pick(schoolId: string) {
     try {
