@@ -1,10 +1,6 @@
 #!/bin/sh
 set -e
-
-if [ -n "$DATABASE_URL" ]; then
-  echo "Running drizzle migrations..."
-  drizzle-kit migrate
-fi
-
+# App DB is Prisma on danika-api. Do not run drizzle-kit on boot — a global
+# install cannot load drizzle-orm and it crash-loops the marketing site.
 echo "Starting website..."
 exec "$@"

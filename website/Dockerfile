@@ -58,9 +58,7 @@ COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=build /app/migrations ./migrations
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 
-# After COPY so this does not run in parallel with `deps` npm install.
-RUN npm install -g drizzle-kit@0.31.10 --omit=dev --no-audit --no-fund \
- && chmod +x docker-entrypoint.sh \
+RUN chmod +x docker-entrypoint.sh \
  && chown nextjs:nodejs docker-entrypoint.sh drizzle.config.ts \
  && chown -R nextjs:nodejs migrations
 
