@@ -8,6 +8,11 @@ coverage
 !.env.example
 local.db
 tests
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+vitest.config.ts
 playwright.config.ts
 checkly.config.ts
 storybook

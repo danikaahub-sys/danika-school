@@ -6,6 +6,11 @@ coverage
 .env.*
 !.env.example
 src/test-utils
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+vitest.config.ts
 *.md
 .DS_Store
 .git
