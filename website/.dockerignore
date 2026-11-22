@@ -15,6 +15,12 @@ tests
 vitest.config.ts
 playwright.config.ts
 checkly.config.ts
+commitlint.config.ts
+knip.config.ts
+eslint.config.mjs
+lefthook.yml
+**/*.stories.ts
+**/*.stories.tsx
 storybook
 .storybook
 *.md
