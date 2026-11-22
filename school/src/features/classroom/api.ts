@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/hooks/use-session'
 import { api } from '@/lib/api-client'
-import { classLabelFrom, isoDate, lower, mapPerson, personName } from '@/lib/api-map'
+import { classLabelFrom, isoDate, lower, mapPerson, num, personName } from '@/lib/api-map'
 import type {
   AttendanceRow,
   AttendanceStatus,
@@ -60,16 +60,19 @@ function mapHomework(row: Homework & { dueOn?: string }): Homework {
 }
 
 function mapScore(
-  row: Score & { student?: { firstName?: string; lastName?: string }; assessment?: { title?: string } }
+  row: Score & {
+    student?: { firstName?: string; lastName?: string }
+    assessment?: { title?: string; maximum?: number | string }
+  }
 ): Score & { studentName: string } {
   return {
     id: row.id,
     studentId: row.studentId,
     subjectId: row.subjectId,
     title: row.title ?? row.assessment?.title ?? '',
-    earned: row.earned == null ? null : Number(row.earned),
-    maximum: Number(row.maximum),
-    weight: Number(row.weight ?? 1),
+    earned: num(row.earned),
+    maximum: num(row.maximum ?? row.assessment?.maximum) ?? 0,
+    weight: num(row.weight) ?? 1,
     status: lower(String(row.status)),
     studentName: personName(row.student),
   }

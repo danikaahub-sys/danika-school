@@ -1,5 +1,6 @@
 import { toast } from 'sonner'
 import { t } from '@/i18n/t'
+import { formatScore } from '@/lib/fa-text'
 import { useSession } from '@/hooks/use-session'
 import { PageHeader } from '@/components/page-header'
 import { QueryGate } from '@/components/query-gate'
@@ -43,7 +44,7 @@ export function ResultsPage({ tab }: { tab?: string }) {
               columns={[t('people.name'), t('classroom.gradebook'), t('people.status')]}
               rows={rows.map((item) => [
                 item.studentName || item.studentId,
-                item.earned == null ? '—' : `${item.earned}/${item.maximum}`,
+                formatScore(item.earned, item.maximum),
                 item.status === 'published' ? t('common.publish') : t('classroom.draft'),
               ])}
             />
@@ -55,7 +56,7 @@ export function ResultsPage({ tab }: { tab?: string }) {
                 .filter((item) => item.status === 'published')
                 .map((item) => [
                   item.studentName || item.studentId,
-                  item.earned == null ? '—' : `${item.earned}/${item.maximum}`,
+                  formatScore(item.earned, item.maximum),
                 ])}
             />
           </TabsContent>

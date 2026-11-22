@@ -106,7 +106,7 @@ export class SchoolDashboardService {
                 take: 10,
             }),
         ]);
-        const grades = await this.db.mark.findMany({
+        const gradeRows = await this.db.mark.findMany({
             where: {
                 schoolId: ctx.schoolId,
                 status: MarkStatus.PUBLISHED,
@@ -115,6 +115,16 @@ export class SchoolDashboardService {
             take: 20,
             include: { assessment: true },
         });
+        const grades = gradeRows.map(mark => ({
+            id: mark.id,
+            studentId: mark.studentId,
+            title: mark.assessment.title,
+            maximum: Number(mark.assessment.maximum),
+            weight: Number(mark.assessment.weight),
+            earned: mark.earned == null ? null : Number(mark.earned),
+            status: mark.status,
+            assessment: mark.assessment,
+        }));
         const classes = await this.db.schoolClass.findMany({
             where: {
                 schoolId: ctx.schoolId,

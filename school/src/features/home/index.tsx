@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { t } from '@/i18n/t'
-import { toFaDigits } from '@/lib/fa-text'
+import { formatScore, toFaDigits } from '@/lib/fa-text'
 import { useSession } from '@/hooks/use-session'
 import { PageHeader } from '@/components/page-header'
 import { StatCard } from '@/components/stat-card'
@@ -124,7 +124,7 @@ function StudentHome() {
         <CardContent className='grid gap-2 text-sm'>
           {data.grades.map((item) => (
             <p key={item.id}>
-              {item.title}: {item.earned}/{item.maximum}
+              {item.title}: {formatScore(item.earned, item.maximum)}
             </p>
           ))}
         </CardContent>

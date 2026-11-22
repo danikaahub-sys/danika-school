@@ -8,6 +8,13 @@ export function money(value: unknown): number {
   return Number(value ?? 0)
 }
 
+/** Coerce API decimals/strings to a finite number; null when missing/invalid. */
+export function num(value: unknown): number | null {
+  if (value == null || value === '') return null
+  const n = typeof value === 'number' ? value : Number(String(value))
+  return Number.isFinite(n) ? n : null
+}
+
 export function isoDate(value: unknown): string {
   if (!value) return ''
   return String(value).slice(0, 10)

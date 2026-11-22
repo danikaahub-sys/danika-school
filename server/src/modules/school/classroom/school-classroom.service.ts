@@ -141,7 +141,7 @@ export class SchoolClassroomService {
     async results(ctx: SchoolContext) {
         const studentIds = await this.scope.academicStudentIds(ctx);
         const classIds = await this.scope.classIds(ctx);
-        return this.db.mark.findMany({
+        const marks = await this.db.mark.findMany({
             where: {
                 schoolId: ctx.schoolId,
                 ...(studentIds ? { studentId: { in: studentIds } } : {}),
@@ -158,6 +158,18 @@ export class SchoolClassroomService {
             },
             orderBy: { updatedAt: 'desc' },
         });
+        return marks.map(mark => ({
+            id: mark.id,
+            studentId: mark.studentId,
+            subjectId: mark.assessment.assignment.subjectId,
+            title: mark.assessment.title,
+            maximum: Number(mark.assessment.maximum),
+            weight: Number(mark.assessment.weight),
+            earned: mark.earned == null ? null : Number(mark.earned),
+            status: mark.status,
+            student: mark.student,
+            assessment: mark.assessment,
+        }));
     }
 
     async markAttendance(

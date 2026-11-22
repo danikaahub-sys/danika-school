@@ -1,4 +1,5 @@
 import { t } from '@/i18n/t'
+import { formatScore } from '@/lib/fa-text'
 import { useSession } from '@/hooks/use-session'
 import { PageHeader } from '@/components/page-header'
 import { QueryGate } from '@/components/query-gate'
@@ -84,7 +85,7 @@ export function PersonPage({ personId, tab }: { personId: string; tab?: string }
                 <SimpleTable
                   columns={[t('classroom.gradebook'), t('people.status')]}
                   rows={(query.data?.scores ?? []).map((item) => [
-                    item.earned == null ? '—' : `${item.earned}/${item.maximum}`,
+                    formatScore(item.earned, item.maximum),
                     item.status === 'published' ? t('common.publish') : t('classroom.draft'),
                   ])}
                 />

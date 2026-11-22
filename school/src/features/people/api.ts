@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type AttendanceRow, type Charge, type GuardianLink, type Person, type PersonKind, type Score } from '@/mocks'
 import { api } from '@/lib/api-client'
-import { classLabelFrom, lower, mapPerson, money, personName } from '@/lib/api-map'
+import { classLabelFrom, lower, mapPerson, money, num, personName } from '@/lib/api-map'
 
 export type DirectoryPerson = Person & { classLabel: string }
 
@@ -69,8 +69,8 @@ export function usePerson(id: string) {
         scores: data.scores.map((item) => ({
           ...item,
           status: lower(String(item.status)) as Score['status'],
-          earned: item.earned == null ? null : Number(item.earned),
-          maximum: Number(item.maximum),
+          earned: num(item.earned),
+          maximum: num(item.maximum) ?? 0,
         })),
         charges: data.charges.map((item) => ({
           ...item,

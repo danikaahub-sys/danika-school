@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { t } from '@/i18n/t'
+import { formatScore } from '@/lib/fa-text'
 import { displayName, type AttendanceStatus } from '@/mocks'
 import { useSession } from '@/hooks/use-session'
 import { PageHeader } from '@/components/page-header'
@@ -134,7 +135,7 @@ export function ClassWorkspacePage({ classId, tab }: { classId: string; tab?: st
                   .filter((item) => canEdit || item.status === 'published')
                   .map((item) => [
                     item.studentName || item.studentId,
-                    item.earned == null ? '—' : `${item.earned}/${item.maximum}`,
+                    formatScore(item.earned, item.maximum),
                     <Badge key={item.id} variant={item.status === 'published' ? 'secondary' : 'outline'}>
                       {item.status === 'published' ? t('common.publish') : t('classroom.draft')}
                     </Badge>,

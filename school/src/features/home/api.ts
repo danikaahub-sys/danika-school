@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { attentionSchema } from '@/features/home/schema'
 import { useSession } from '@/hooks/use-session'
 import { api } from '@/lib/api-client'
-import { classLabelFrom, isoDate, lower } from '@/lib/api-map'
+import { classLabelFrom, isoDate, lower, num } from '@/lib/api-map'
 import type { Announcement, Homework, Score, TeachingSession } from '@/mocks'
 
 export function useHome() {
@@ -24,7 +24,9 @@ export function useHome() {
         >
         homework: Array<Homework & { dueOn?: string }>
         notices: Announcement[]
-        grades: Array<Score & { assessment?: { title: string } }>
+        grades: Array<
+          Score & { assessment?: { title: string; maximum?: number | string } }
+        >
         className?: string
         teacherClasses?: Array<{ id: string; name: string; gradeId: string; label: string }>
       }>('/school/dashboard/home')
@@ -62,8 +64,8 @@ export function useHome() {
           ...item,
           title: item.title ?? item.assessment?.title ?? '',
           status: lower<Score['status']>(String(item.status)),
-          earned: item.earned == null ? null : Number(item.earned),
-          maximum: Number(item.maximum),
+          earned: num(item.earned),
+          maximum: num(item.maximum ?? item.assessment?.maximum) ?? 0,
         })),
         className: data.className ?? '',
         teacherClasses: data.teacherClasses ?? [],
