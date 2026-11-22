@@ -126,13 +126,6 @@ export function getNavGroups(role: BaseRole, attention: AttentionCounts): NavGro
         permission: 'classroom.workspace.view',
       }),
       item({
-        id: 'hw',
-        title: t('classroom.homework'),
-        url: '/classroom',
-        icon: BookOpen,
-        permission: 'classroom.workspace.view',
-      }),
-      item({
         id: 'grades',
         title: t('nav.results'),
         url: '/classroom/results',

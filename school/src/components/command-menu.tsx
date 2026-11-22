@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Laptop, Moon, Sun } from 'lucide-react'
+import { ArrowLeft, Moon, Sun } from 'lucide-react'
 import { t } from '@/i18n/t'
 import { faIncludes } from '@/lib/fa-text'
 import { displayName } from '@/mocks'
@@ -135,9 +135,6 @@ export function CommandMenu() {
             </CommandItem>
             <CommandItem onSelect={() => runCommand(() => setTheme('dark'))}>
               <Moon /> {t('theme.dark')}
-            </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => setTheme('system'))}>
-              <Laptop /> {t('theme.system')}
             </CommandItem>
           </CommandGroup>
         </ScrollArea>

@@ -5,10 +5,15 @@ import { useAttention } from '@/hooks/use-attention'
 import { useSession } from '@/hooks/use-session'
 import { cn } from '@/lib/utils'
 import { getNavGroups } from './data/sidebar-data'
-import { type NavLink } from './types'
+import { linkActive } from './nav-active'
+import { type NavGroup, type NavLink } from './types'
 
 function isLink(item: { items?: unknown }): item is NavLink {
   return !item.items
+}
+
+function collectLinks(group: NavGroup): NavLink[] {
+  return group.items.flatMap((item) => (isLink(item) ? [item] : item.items))
 }
 
 export function MobileNav() {
@@ -27,19 +32,20 @@ export function MobileNav() {
         .filter((group) => group.items.length > 0),
     [role, counts, permissions]
   )
+  const allUrls = useMemo(
+    () => groups.flatMap((group) => collectLinks(group).map((item) => item.url ?? '/')),
+    [groups]
+  )
   const owner =
     groups.find((group) =>
-      group.items.some(
-        (item) =>
-          isLink(item) && href.split('?')[0] === (item.url ?? '').split('?')[0]
-      )
+      collectLinks(group).some((item) => linkActive(href, item.url, allUrls))
     ) ?? groups[0]
   const [groupId, setGroupId] = useState(owner?.id ?? groups[0]?.id)
   const group = groups.find((item) => item.id === groupId) ?? groups[0]
-  const links = (group?.items.filter(isLink) ?? []) as NavLink[]
+  const links = collectLinks(group)
 
   return (
-    <div className='sticky top-16 z-40 space-y-2 border-b bg-background px-3 py-2 md:hidden'>
+    <div className='z-40 shrink-0 space-y-2 border-b bg-background px-3 py-2 md:hidden'>
       <div className='flex gap-2 overflow-x-auto pb-1'>
         {groups.map((item) => (
           <button
@@ -57,7 +63,7 @@ export function MobileNav() {
       </div>
       <div className='flex gap-2 overflow-x-auto pb-1'>
         {links.map((item) => {
-          const active = href.split('?')[0] === (item.url ?? '').split('?')[0]
+          const active = linkActive(href, item.url, allUrls)
           return (
             <Link
               key={item.id}

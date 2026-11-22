@@ -7,7 +7,6 @@ import { useSession } from '@/hooks/use-session'
 import { toFaDigits } from '@/lib/fa-text'
 import { cn } from '@/lib/utils'
 import { t } from '@/i18n/t'
-import { useLayout } from '@/context/layout-provider'
 import {
   Sidebar,
   SidebarContent,
@@ -25,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { getNavGroups } from './data/sidebar-data'
+import { linkActive } from './nav-active'
 import { NavUser } from './nav-user'
 import { SchoolSwitcher } from './school-switcher'
 import { type NavGroup, type NavLink } from './types'
@@ -45,12 +45,6 @@ function isLink(item: NavGroup['items'][number]): item is NavLink {
 
 function collectLinks(group: NavGroup): NavLink[] {
   return group.items.flatMap((item) => (isLink(item) ? [item] : item.items))
-}
-
-function linkActive(href: string, url?: string) {
-  const path = href.split('?')[0]
-  const target = (url ?? '/').split('?')[0]
-  return path === target || (target !== '/' && path.startsWith(`${target}/`))
 }
 
 function groupCount(links: NavLink[]) {
@@ -80,7 +74,6 @@ function CountBadge({
 }
 
 export function AppSidebar() {
-  const { collapsible, variant } = useLayout()
   const { state, isMobile } = useSidebar()
   const { user, role, permissions } = useSession()
   const { counts } = useAttention()
@@ -100,10 +93,14 @@ export function AppSidebar() {
 
   const workdesk = groups.find((group) => group.pinned)
   const topics = groups.filter((group) => !group.pinned)
+  const allUrls = useMemo(
+    () => groups.flatMap((group) => collectLinks(group).map((item) => item.url ?? '/')),
+    [groups]
+  )
 
   useEffect(() => {
     const owner = topics.find((group) =>
-      collectLinks(group).some((item) => linkActive(href, item.url))
+      collectLinks(group).some((item) => linkActive(href, item.url, allUrls))
     )
     if (owner && openId !== 'all') setOpenId(owner.id)
   }, [href]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -130,7 +127,7 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible={collapsible} variant={variant} side='right'>
+    <Sidebar collapsible='icon' variant='sidebar' side='right'>
       <SidebarHeader>
         {collapsed ? (
           <div className='flex justify-center p-2'>
@@ -147,7 +144,9 @@ export function AppSidebar() {
             {groups.map((group) => {
               const links = collectLinks(group)
               const Icon = group.icon ?? links[0]?.icon
-              const owns = links.some((item) => linkActive(href, item.url))
+              const owns = links.some((item) =>
+                linkActive(href, item.url, allUrls)
+              )
               const tone = groupTone(links)
               return (
                 <DropdownMenu key={group.id}>
@@ -191,6 +190,7 @@ export function AppSidebar() {
                 group={workdesk}
                 links={collectLinks(workdesk)}
                 href={href}
+                allUrls={allUrls}
                 open
                 pinned
               />
@@ -218,6 +218,7 @@ export function AppSidebar() {
                   group={group}
                   links={links}
                   href={href}
+                  allUrls={allUrls}
                   open={open}
                   onToggle={() => toggleTopic(group.id)}
                 />
@@ -245,6 +246,7 @@ function RailGroup({
   group,
   links,
   href,
+  allUrls,
   open,
   pinned = false,
   onToggle,
@@ -252,12 +254,13 @@ function RailGroup({
   group: NavGroup
   links: NavLink[]
   href: string
+  allUrls: string[]
   open: boolean
   pinned?: boolean
   onToggle?: () => void
 }) {
   const Icon = group.icon ?? links[0]?.icon
-  const owns = links.some((item) => linkActive(href, item.url))
+  const owns = links.some((item) => linkActive(href, item.url, allUrls))
   const tone = groupTone(links)
   const count = groupCount(links)
 
@@ -314,7 +317,12 @@ function RailGroup({
         <div className={cn('min-h-0 overflow-hidden', open ? '' : 'invisible')}>
           <ul className='ms-[25px] mt-1 mb-1.5 flex list-none flex-col gap-0.5 border-s border-sidebar-border ps-1.5'>
             {links.map((item) => (
-              <RailLink key={item.id} item={item} href={href} />
+              <RailLink
+                key={item.id}
+                item={item}
+                href={href}
+                allUrls={allUrls}
+              />
             ))}
           </ul>
         </div>
@@ -323,8 +331,16 @@ function RailGroup({
   )
 }
 
-function RailLink({ item, href }: { item: NavLink; href: string }) {
-  const active = linkActive(href, item.url)
+function RailLink({
+  item,
+  href,
+  allUrls,
+}: {
+  item: NavLink
+  href: string
+  allUrls: string[]
+}) {
+  const active = linkActive(href, item.url, allUrls)
   const ref = useRef<HTMLLIElement>(null)
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { Header } from '@/components/layout/header'
 import { Search } from '@/components/search'
-import { ConfigDrawer } from '@/components/config-drawer'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import {
   AreaJumps,
@@ -24,7 +24,7 @@ export function AppHeader() {
         <HelpButton />
         <QuickCreate />
         <ViewAsRole />
-        <ConfigDrawer />
+        <ThemeToggle />
         <ProfileDropdown />
       </div>
     </Header>
