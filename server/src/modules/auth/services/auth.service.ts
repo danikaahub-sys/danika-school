@@ -11,6 +11,7 @@ import { UserRole } from 'src/common/database/enums/role.enum';
 import { RefreshSessionRepository } from 'src/common/database/repositories/refresh-session.repository';
 import { UserRepository } from 'src/common/database/repositories/user.repository';
 import type { IAuthUser } from 'src/common/request/interfaces/request.interface';
+import { normalizeIranPhone } from 'src/common/utils/iran-phone';
 
 import { UserLoginDto } from '../dtos/auth.login.dto';
 import {
@@ -97,7 +98,8 @@ export class AuthService {
     }
 
     async sendOtp({ phone, purpose }: OtpSendDto): Promise<{ sent: true }> {
-        const resendKey = `${OTP_RESEND_PREFIX}:${purpose}:${phone}`;
+        const mobile = normalizeIranPhone(phone);
+        const resendKey = `${OTP_RESEND_PREFIX}:${purpose}:${mobile}`;
         if (await this.cache.exists(resendKey)) {
             throw new HttpException(
                 'auth.error.otpResendTooSoon',
@@ -110,16 +112,21 @@ export class AuthService {
             hash: this.hashValue(code),
             attempts: 0,
         };
-        await this.cache.set(`${OTP_PREFIX}:${purpose}:${phone}`, payload, ttl);
+        await this.cache.set(
+            `${OTP_PREFIX}:${purpose}:${mobile}`,
+            payload,
+            ttl
+        );
         await this.cache.set(resendKey, '1', this.otpResend());
-        await this.sms.send(phone, `کد تایید دانیکا: ${code}`);
+        await this.sms.send(mobile, `کد تایید دانیکا: ${code}`);
         return { sent: true };
     }
 
     async verifyOtp(
         data: OtpVerifyDto
     ): Promise<AuthResponseDto | { proof: string }> {
-        const key = `${OTP_PREFIX}:${data.purpose}:${data.phone}`;
+        const phone = normalizeIranPhone(data.phone);
+        const key = `${OTP_PREFIX}:${data.purpose}:${phone}`;
         const stored = await this.cache.get<{ hash: string; attempts: number }>(
             key
         );
@@ -152,14 +159,14 @@ export class AuthService {
         if (data.purpose === 'reset') {
             const proof = randomBytes(24).toString('hex');
             await this.cache.set(
-                `${OTP_PROOF_PREFIX}:${data.phone}`,
+                `${OTP_PROOF_PREFIX}:${phone}`,
                 this.hashValue(proof),
                 600
             );
             return { proof };
         }
 
-        const user = await this.userRepository.findByPhone(data.phone);
+        const user = await this.userRepository.findByPhone(phone);
         if (!user || user.deletedAt) {
             throw new HttpException(
                 'user.error.userNotFound',
@@ -174,7 +181,8 @@ export class AuthService {
     }
 
     async resetPassword(data: PasswordResetDto): Promise<{ success: true }> {
-        const key = `${OTP_PROOF_PREFIX}:${data.phone}`;
+        const phone = normalizeIranPhone(data.phone);
+        const key = `${OTP_PROOF_PREFIX}:${phone}`;
         const stored = await this.cache.get<string>(key);
         if (!stored || stored !== this.hashValue(data.proof)) {
             throw new HttpException(
@@ -182,7 +190,7 @@ export class AuthService {
                 HttpStatus.BAD_REQUEST
             );
         }
-        const user = await this.userRepository.findByPhone(data.phone);
+        const user = await this.userRepository.findByPhone(phone);
         if (!user) {
             throw new HttpException(
                 'user.error.userNotFound',

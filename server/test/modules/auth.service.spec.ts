@@ -218,6 +218,21 @@ describe('AuthService', () => {
             expect(mockCache.set).toHaveBeenCalled();
         });
 
+        it('normalizes 10-digit iran mobiles before sms', async () => {
+            mockCache.exists.mockResolvedValue(false);
+            mockConfigService.get.mockReturnValue(undefined);
+            await service.sendOtp({ phone: '9114174021', purpose: 'login' });
+            expect(mockSms.send).toHaveBeenCalledWith(
+                '09114174021',
+                expect.stringMatching(/^کد تایید دانیکا: \d{6}$/)
+            );
+            expect(mockCache.set).toHaveBeenCalledWith(
+                'otp:login:09114174021',
+                expect.any(Object),
+                expect.any(Number)
+            );
+        });
+
         it('throws when otp is missing', async () => {
             mockCache.get.mockResolvedValue(null);
             await expect(

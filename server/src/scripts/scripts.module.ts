@@ -5,6 +5,7 @@ import { CommandModule } from 'nestjs-command';
 import configs from 'src/common/config';
 import { DatabaseModule } from 'src/common/database/database.module';
 
+import { SchoolPanelSeed } from './seeds/school-panel.seed';
 import { SchoolSeed } from './seeds/school.seed';
 import { UserSeed } from './seeds/user.seed';
 
@@ -19,6 +20,6 @@ import { UserSeed } from './seeds/user.seed';
         DatabaseModule,
         CommandModule,
     ],
-    providers: [UserSeed, SchoolSeed],
+    providers: [UserSeed, SchoolSeed, SchoolPanelSeed],
 })
 export class ScriptsModule {}

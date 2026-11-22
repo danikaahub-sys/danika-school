@@ -1,11 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsIn, IsNotEmpty, IsString, Length, Matches } from 'class-validator';
+
+import { normalizeIranPhone } from 'src/common/utils/iran-phone';
 
 export const OTP_PURPOSES = ['login', 'reset'] as const;
 export type OtpPurpose = (typeof OTP_PURPOSES)[number];
 
 export class OtpSendDto {
     @ApiProperty({ example: '09121234567' })
+    @Transform(({ value }) =>
+        typeof value === 'string' ? normalizeIranPhone(value) : value
+    )
     @IsString()
     @IsNotEmpty()
     @Length(8, 20)
@@ -25,6 +31,9 @@ export class OtpVerifyDto extends OtpSendDto {
 
 export class PasswordResetDto {
     @ApiProperty({ example: '09121234567' })
+    @Transform(({ value }) =>
+        typeof value === 'string' ? normalizeIranPhone(value) : value
+    )
     @IsString()
     @IsNotEmpty()
     phone: string;

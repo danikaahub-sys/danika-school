@@ -1,6 +1,11 @@
 import { faker } from '@faker-js/faker';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, Matches } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+
+import { normalizeIranPhone } from 'src/common/utils/iran-phone';
+
+const LOGIN_PASSWORD_MIN_LENGTH = 7;
 
 export class UserLoginDto {
     @ApiProperty({
@@ -8,20 +13,19 @@ export class UserLoginDto {
         description: 'Email, phone or username',
         required: true,
     })
+    @Transform(({ value }) =>
+        typeof value === 'string' ? normalizeIranPhone(value) : value
+    )
     @IsString()
     @IsNotEmpty()
     public identifier: string;
 
     @ApiProperty({
-        example: `${faker.string.alphanumeric(5).toLowerCase()}${faker.string
-            .alphanumeric(5)
-            .toUpperCase()}@@!${faker.number.int(1000)}`,
+        example: 'schoolpass',
         required: true,
     })
     @IsString()
     @IsNotEmpty()
-    @Matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
-    )
+    @MinLength(LOGIN_PASSWORD_MIN_LENGTH)
     public password: string;
 }

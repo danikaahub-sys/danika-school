@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { normalizeIranPhone } from 'src/common/utils/iran-phone';
+
 import type { SmsProvider } from '../interfaces/sms-provider.interface';
 
 const SEND_SMS_URL = 'https://sms.parsgreen.ir/Apiv2/Message/SendSms';
@@ -33,7 +35,7 @@ export class ParsGreenSmsProvider implements SmsProvider {
         const timeoutMs =
             this.configService.get<number>('auth.sms.timeoutMs') ??
             DEFAULT_TIMEOUT_MS;
-        const mobile = toParsGreenMobile(phone);
+        const mobile = toParsGreenMobile(normalizeIranPhone(phone));
 
         const response = await fetch(SEND_SMS_URL, {
             method: 'POST',

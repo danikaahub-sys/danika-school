@@ -5,6 +5,7 @@ import type {
     UpdateUserInput,
     UserEntity,
 } from 'src/common/database/interfaces/user.interface';
+import { normalizeIranPhone } from 'src/common/utils/iran-phone';
 
 import { DatabaseService } from '../services/database.service';
 
@@ -21,7 +22,9 @@ export class UserRepository {
     }
 
     findByPhone(phone: string): Promise<UserEntity | null> {
-        return this.db.user.findUnique({ where: { phone } });
+        return this.db.user.findUnique({
+            where: { phone: normalizeIranPhone(phone) },
+        });
     }
 
     findByUserName(userName: string): Promise<UserEntity | null> {
@@ -61,7 +64,7 @@ export class UserRepository {
 
     async existsByPhone(phone: string): Promise<boolean> {
         const found = await this.db.user.findUnique({
-            where: { phone },
+            where: { phone: normalizeIranPhone(phone) },
             select: { id: true },
         });
         return found !== null;
@@ -69,13 +72,19 @@ export class UserRepository {
 
     create(data: CreateUserInput): Promise<UserEntity> {
         const { password, ...rest } = data;
-        return this.db.user.create({
-            data: { ...rest, passwordHash: password },
-        });
+        const payload = { ...rest, passwordHash: password };
+        if (payload.phone) {
+            payload.phone = normalizeIranPhone(payload.phone);
+        }
+        return this.db.user.create({ data: payload });
     }
 
     update(id: string, data: UpdateUserInput): Promise<UserEntity> {
-        return this.db.user.update({ where: { id }, data });
+        const payload = { ...data };
+        if (payload.phone) {
+            payload.phone = normalizeIranPhone(payload.phone);
+        }
+        return this.db.user.update({ where: { id }, data: payload });
     }
 
     softDelete(id: string): Promise<UserEntity> {

@@ -21,6 +21,7 @@
         "cli": "ts-node -r tsconfig-paths/register src/cli.ts",
         "seed:admin": "npm run cli -- seed:admin",
         "seed:school-demo": "npm run cli -- seed:school-demo",
+        "seed:school-panel": "npm run cli -- seed:school-panel",
         "remove:admin": "npm run cli -- remove:admin",
         "lint": "eslint \"{src,test}/**/*.ts\"",
         "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",

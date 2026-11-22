@@ -88,6 +88,14 @@ describe('UserRepository', () => {
                 id: '1',
             });
         });
+
+        it('looks up the canonical 09 form of a 10-digit mobile', async () => {
+            mockUserDelegate.findUnique.mockResolvedValue({ id: '1' });
+            await repository.findByPhone('9114174021');
+            expect(mockUserDelegate.findUnique).toHaveBeenCalledWith({
+                where: { phone: '09114174021' },
+            });
+        });
     });
 
     describe('findByUserName', () => {
@@ -190,6 +198,24 @@ describe('UserRepository', () => {
                 },
             });
         });
+
+        it('stores Iranian mobiles in 09 form', async () => {
+            mockUserDelegate.create.mockResolvedValue({ id: '1' });
+            await repository.create({
+                phone: '9114174021',
+                password: 'hashed',
+                userName: 'admin_09114174021',
+                role: UserRole.ADMIN,
+            });
+            expect(mockUserDelegate.create).toHaveBeenCalledWith({
+                data: {
+                    phone: '09114174021',
+                    userName: 'admin_09114174021',
+                    role: UserRole.ADMIN,
+                    passwordHash: 'hashed',
+                },
+            });
+        });
     });
 
     describe('update', () => {
@@ -203,6 +229,15 @@ describe('UserRepository', () => {
             expect(mockUserDelegate.update).toHaveBeenCalledWith({
                 where: { id: '1' },
                 data: { email: 'new@b.com' },
+            });
+        });
+
+        it('normalizes phone on update', async () => {
+            mockUserDelegate.update.mockResolvedValue({ id: '1' });
+            await repository.update('1', { phone: '9114174021' });
+            expect(mockUserDelegate.update).toHaveBeenCalledWith({
+                where: { id: '1' },
+                data: { phone: '09114174021' },
             });
         });
     });
