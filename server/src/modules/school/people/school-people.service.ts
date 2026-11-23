@@ -93,12 +93,20 @@ export class SchoolPeopleService {
                 },
                 guardianAsGuardian: { include: { student: true } },
                 guardianAsStudent: { include: { guardian: true } },
-                attendance: { take: 50, orderBy: { updatedAt: 'desc' } },
+                attendance: {
+                    take: 50,
+                    orderBy: { updatedAt: 'desc' },
+                    include: { session: true },
+                },
                 marks: {
                     take: 50,
+                    orderBy: { updatedAt: 'desc' },
                     include: { assessment: true },
                 },
-                charges: { where: { yearId: ctx.yearId } },
+                charges: {
+                    where: { yearId: ctx.yearId },
+                    orderBy: { createdAt: 'desc' },
+                },
             },
         });
         if (!person) {
@@ -108,29 +116,90 @@ export class SchoolPeopleService {
             );
         }
         const enrollment = person.enrollments[0];
-        const className = enrollment
-            ? `${enrollment.class.grade?.name ?? ''} ${enrollment.class.name}`.trim()
-            : '';
+        const gradeName = enrollment?.class.grade?.name ?? '';
+        const classOnly = enrollment?.class.name ?? '';
+        const className = `${gradeName} ${classOnly}`.trim();
+        // BigInt amountIrr cannot JSON.stringify — stringify like finance responses.
+        const charges = person.charges.map(charge => ({
+            ...charge,
+            amountIrr: String(charge.amountIrr),
+        }));
+        const links = [
+            ...person.guardianAsGuardian,
+            ...person.guardianAsStudent,
+        ].map(link => ({
+            ...link,
+            verified: Boolean(link.verifiedAt),
+        }));
+        const attendance = person.attendance.map(row => ({
+            id: row.id,
+            sessionId: row.sessionId,
+            studentId: row.studentId,
+            status: row.status,
+            date: row.session.date,
+            updatedAt: row.updatedAt,
+        }));
+        const scores = person.marks.map(mark => ({
+            id: mark.id,
+            studentId: mark.studentId,
+            title: mark.assessment.title,
+            maximum: Number(mark.assessment.maximum),
+            weight: Number(mark.assessment.weight),
+            earned: mark.earned == null ? null : Number(mark.earned),
+            status: mark.status,
+            updatedAt: mark.updatedAt,
+        }));
         return {
-            person,
+            person: {
+                id: person.id,
+                schoolId: person.schoolId,
+                kind: person.kind,
+                firstName: person.firstName,
+                lastName: person.lastName,
+                nationalId: person.nationalId,
+                phone: person.phone,
+                status: person.status,
+                createdAt: person.createdAt,
+                enrollments: person.enrollments,
+                charges,
+            },
             name: `${person.firstName} ${person.lastName}`.trim(),
             className,
-            links: [
-                ...person.guardianAsGuardian,
-                ...person.guardianAsStudent,
-            ].map(link => ({
-                ...link,
-                verified: Boolean(link.verifiedAt),
-            })),
-            attendance: person.attendance,
-            scores: person.marks.map(mark => ({
-                ...mark,
-                title: mark.assessment.title,
-                maximum: Number(mark.assessment.maximum),
-                weight: Number(mark.assessment.weight),
-                earned: mark.earned == null ? null : Number(mark.earned),
-            })),
-            charges: person.charges,
+            gradeName,
+            classOnly,
+            enrollment: enrollment
+                ? {
+                      id: enrollment.id,
+                      classId: enrollment.classId,
+                      yearId: enrollment.yearId,
+                      className,
+                      gradeName,
+                      classOnly,
+                  }
+                : null,
+            links,
+            attendance,
+            scores,
+            charges,
+            summary: {
+                guardians: links.length,
+                attendanceTotal: attendance.length,
+                present: attendance.filter(row => row.status === 'PRESENT')
+                    .length,
+                absent: attendance.filter(row => row.status === 'ABSENT')
+                    .length,
+                scoresTotal: scores.length,
+                scoresPublished: scores.filter(
+                    row => row.status === 'PUBLISHED'
+                ).length,
+                chargesTotal: charges.length,
+                chargesAmountIrr: String(
+                    charges.reduce(
+                        (sum, charge) => sum + BigInt(charge.amountIrr),
+                        0n
+                    )
+                ),
+            },
         };
     }
 

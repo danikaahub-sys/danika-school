@@ -84,34 +84,72 @@ describe('SchoolPeopleService', () => {
         await expect(service.detail(ctx, 'x')).rejects.toThrow(HttpException);
         db.person.findFirst.mockResolvedValue({
             id: 'p',
+            schoolId: 's',
+            kind: PersonKind.STUDENT,
             firstName: 'A',
             lastName: 'B',
-            enrollments: [{ class: { name: 'الف', grade: { name: 'هفتم' } } }],
+            nationalId: null,
+            phone: null,
+            status: 'ACTIVE',
+            createdAt: new Date(),
+            enrollments: [
+                {
+                    id: 'e1',
+                    classId: 'c1',
+                    yearId: 'y',
+                    class: { name: 'الف', grade: { name: 'هفتم' } },
+                },
+            ],
             guardianAsGuardian: [{ id: 'g', verifiedAt: new Date() }],
             guardianAsStudent: [{ id: 'l', verifiedAt: null }],
             attendance: [],
             marks: [
                 {
+                    id: 'm1',
+                    studentId: 'p',
                     earned: 10,
+                    status: 'PUBLISHED',
+                    updatedAt: new Date(),
                     assessment: { title: 't', maximum: 20, weight: 1 },
                 },
             ],
             charges: [],
         });
         await expect(service.detail(ctx, 'p')).resolves.toEqual(
-            expect.objectContaining({ className: 'هفتم الف' })
+            expect.objectContaining({
+                className: 'هفتم الف',
+                gradeName: 'هفتم',
+                classOnly: 'الف',
+            })
         );
         db.person.findFirst.mockResolvedValue({
             id: 'p',
+            schoolId: 's',
+            kind: PersonKind.STUDENT,
             firstName: 'A',
             lastName: 'B',
-            enrollments: [{ class: { name: 'الف' } }],
+            nationalId: null,
+            phone: null,
+            status: 'ACTIVE',
+            createdAt: new Date(),
+            enrollments: [
+                {
+                    id: 'e1',
+                    classId: 'c1',
+                    yearId: 'y',
+                    class: { name: 'الف' },
+                },
+            ],
             guardianAsGuardian: [],
             guardianAsStudent: [],
             attendance: [],
             marks: [
                 {
+                    id: 'm1',
+                    studentId: 'p',
                     earned: null,
+                    status: 'DRAFT',
+                    updatedAt: new Date(),
                     assessment: { title: 't', maximum: 20, weight: 1 },
                 },
             ],
@@ -122,8 +160,14 @@ describe('SchoolPeopleService', () => {
         );
         db.person.findFirst.mockResolvedValue({
             id: 'p',
+            schoolId: 's',
+            kind: PersonKind.STUDENT,
             firstName: 'A',
             lastName: 'B',
+            nationalId: null,
+            phone: null,
+            status: 'ACTIVE',
+            createdAt: new Date(),
             enrollments: [],
             guardianAsGuardian: [],
             guardianAsStudent: [],
@@ -132,8 +176,46 @@ describe('SchoolPeopleService', () => {
             charges: [],
         });
         await expect(service.detail(ctx, 'p')).resolves.toEqual(
-            expect.objectContaining({ className: '' })
+            expect.objectContaining({ className: '', enrollment: null })
         );
+        db.person.findFirst.mockResolvedValue({
+            id: 'p',
+            schoolId: 's',
+            kind: PersonKind.STUDENT,
+            firstName: 'A',
+            lastName: 'B',
+            nationalId: null,
+            phone: null,
+            status: 'ACTIVE',
+            createdAt: new Date(),
+            enrollments: [],
+            guardianAsGuardian: [],
+            guardianAsStudent: [],
+            attendance: [
+                {
+                    id: 'a1',
+                    sessionId: 'se1',
+                    studentId: 'p',
+                    status: 'PRESENT',
+                    updatedAt: new Date(),
+                    session: { date: new Date('2026-11-01') },
+                },
+            ],
+            marks: [],
+            charges: [
+                {
+                    id: 'c1',
+                    title: 'شهریه',
+                    amountIrr: 20_000_000n,
+                    createdAt: new Date(),
+                },
+            ],
+        });
+        const withCharges = await service.detail(ctx, 'p');
+        expect(withCharges.charges[0].amountIrr).toBe('20000000');
+        expect(withCharges.summary.present).toBe(1);
+        expect(withCharges.summary.chargesAmountIrr).toBe('20000000');
+        expect(() => JSON.stringify(withCharges)).not.toThrow();
         db.person.create.mockResolvedValue({ id: 'n' });
         await service.create(ctx, {
             kind: PersonKind.STAFF,

@@ -1,9 +1,59 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type AttendanceRow, type Charge, type GuardianLink, type Person, type PersonKind, type Score } from '@/mocks'
 import { api } from '@/lib/api-client'
-import { classLabelFrom, lower, mapPerson, money, num, personName } from '@/lib/api-map'
+import { classLabelFrom, isoDate, lower, mapPerson, money, num, personName } from '@/lib/api-map'
 
 export type DirectoryPerson = Person & { classLabel: string }
+
+export type PersonLink = GuardianLink & {
+  otherName: string
+  otherPhone?: string
+}
+
+export type PersonAttendance = AttendanceRow & {
+  id?: string
+  date?: string
+}
+
+export type PersonScore = Score & {
+  updatedAt?: string
+}
+
+export type PersonCharge = Charge & {
+  dueOn?: string
+}
+
+export type PersonSummary = {
+  guardians: number
+  attendanceTotal: number
+  present: number
+  absent: number
+  scoresTotal: number
+  scoresPublished: number
+  chargesTotal: number
+  chargesAmountIrr: number
+}
+
+export type PersonDetail = {
+  person: Person
+  name: string
+  className: string
+  gradeName: string
+  classOnly: string
+  enrollment: {
+    id: string
+    classId: string
+    yearId: string
+    className: string
+    gradeName: string
+    classOnly: string
+  } | null
+  links: PersonLink[]
+  attendance: PersonAttendance[]
+  scores: PersonScore[]
+  charges: PersonCharge[]
+  summary: PersonSummary
+}
 
 export function usePeople(kind?: PersonKind, search = '', enabled = true) {
   return useQuery({
@@ -35,47 +85,86 @@ export function usePerson(id: string) {
   return useQuery({
     queryKey: ['person', id],
     enabled: Boolean(id),
-    queryFn: async () => {
+    queryFn: async (): Promise<PersonDetail> => {
       const data = await api<{
         person: Record<string, unknown>
         name: string
         className: string
+        gradeName?: string
+        classOnly?: string
+        enrollment?: {
+          id: string
+          classId: string
+          yearId: string
+          className: string
+          gradeName: string
+          classOnly: string
+        } | null
         links: Array<
           GuardianLink & {
             verified?: boolean
             verifiedAt?: string
-            student?: { firstName?: string; lastName?: string }
-            guardian?: { firstName?: string; lastName?: string }
+            student?: { firstName?: string; lastName?: string; phone?: string }
+            guardian?: { firstName?: string; lastName?: string; phone?: string }
           }
         >
-        attendance: AttendanceRow[]
-        scores: Score[]
-        charges: Charge[]
+        attendance: Array<AttendanceRow & { id?: string; date?: string; updatedAt?: string }>
+        scores: Array<Score & { updatedAt?: string }>
+        charges: Array<Charge & { dueOn?: string }>
+        summary?: Partial<PersonSummary> & { chargesAmountIrr?: string | number }
       }>(`/school/people/${id}`)
-      return {
-        ...data,
-        person: mapPerson(data.person),
-        links: data.links.map((link) => ({
+
+      const links = (data.links ?? []).map((link) => {
+        const other = link.guardianId === id ? link.student : link.guardian
+        return {
           ...link,
           verified: Boolean(link.verified ?? link.verifiedAt),
-          otherName:
-            personName(link.guardianId === id ? link.student : link.guardian) ||
-            (link.guardianId === id ? link.studentId : link.guardianId),
-        })),
-        attendance: data.attendance.map((row) => ({
-          ...row,
-          status: lower(String(row.status)) as AttendanceRow['status'],
-        })),
-        scores: data.scores.map((item) => ({
-          ...item,
-          status: lower(String(item.status)) as Score['status'],
-          earned: num(item.earned),
-          maximum: num(item.maximum) ?? 0,
-        })),
-        charges: data.charges.map((item) => ({
-          ...item,
-          amountIrr: money(item.amountIrr),
-        })),
+          otherName: personName(other) || (link.guardianId === id ? link.studentId : link.guardianId),
+          otherPhone: other?.phone,
+        }
+      })
+      const attendance = (data.attendance ?? []).map((row) => ({
+        ...row,
+        status: lower(String(row.status)) as AttendanceRow['status'],
+        date: isoDate(row.date ?? row.updatedAt),
+      }))
+      const scores = (data.scores ?? []).map((item) => ({
+        ...item,
+        title: String(item.title ?? ''),
+        status: lower(String(item.status)) as Score['status'],
+        earned: num(item.earned),
+        maximum: num(item.maximum) ?? 0,
+        weight: num(item.weight) ?? 0,
+        updatedAt: isoDate(item.updatedAt),
+      }))
+      const charges = (data.charges ?? []).map((item) => ({
+        ...item,
+        amountIrr: money(item.amountIrr),
+        dueOn: isoDate(item.dueOn),
+      }))
+      const summary = data.summary
+      return {
+        person: mapPerson(data.person),
+        name: data.name,
+        className: data.className ?? '',
+        gradeName: data.gradeName ?? '',
+        classOnly: data.classOnly ?? '',
+        enrollment: data.enrollment ?? null,
+        links,
+        attendance,
+        scores,
+        charges,
+        summary: {
+          guardians: summary?.guardians ?? links.length,
+          attendanceTotal: summary?.attendanceTotal ?? attendance.length,
+          present: summary?.present ?? attendance.filter((row) => row.status === 'present').length,
+          absent: summary?.absent ?? attendance.filter((row) => row.status === 'absent').length,
+          scoresTotal: summary?.scoresTotal ?? scores.length,
+          scoresPublished:
+            summary?.scoresPublished ?? scores.filter((row) => row.status === 'published').length,
+          chargesTotal: summary?.chargesTotal ?? charges.length,
+          chargesAmountIrr: money(summary?.chargesAmountIrr ?? charges.reduce((sum, c) => sum + c.amountIrr, 0)),
+        },
       }
     },
   })
