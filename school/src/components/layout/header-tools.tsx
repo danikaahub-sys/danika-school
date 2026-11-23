@@ -233,7 +233,9 @@ export function ViewAsRole() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant='outline' size='sm' className='h-9'>
-          {t('nav.viewAs')}
+          {viewAsRole
+            ? `${t('nav.viewAs')} ${t(`role.${viewAsRole}`)}`
+            : t('nav.viewAs')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end'>
