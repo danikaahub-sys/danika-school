@@ -236,7 +236,8 @@ rm -rf src && mkdir -p src && tar xzf src.tar.gz -C src
 cd src
 export DOCKER_BUILDKIT=1
 export BUILDKIT_MAX_PARALLELISM=1
-DK=\"sudo nice -n 10 docker build --label org.opencontainers.image.revision=$DEPLOY_SHA --provenance=false --sbom=false\"
+# host network: BuildKit bridge on this VPS intermittently TLS-fails Alpine CDN.
+DK=\"sudo nice -n 10 docker build --network=host --label org.opencontainers.image.revision=$DEPLOY_SHA --provenance=false --sbom=false\"
 
 echo \"\$(date -Is) api build\"
 \$DK --target production -t danika-api:latest -f server/Dockerfile server
