@@ -5,7 +5,9 @@ WORKDIR /app
 ENV HUSKY=0 CI=1 NODE_OPTIONS=--max-old-space-size=1024
 COPY package.json package-lock.json ./
 # Compilers only exist in this RUN layer; apk del drops them from the image.
-RUN apk upgrade --no-cache \
+# Arvan mirror: dl-cdn Alpine TLS flakes on this VPS during long BuildKit layers.
+RUN sed -i 's#https://dl-cdn.alpinelinux.org/alpine#https://mirror.arvancloud.ir/alpine#g' /etc/apk/repositories \
+ && apk upgrade --no-cache \
  && apk add --no-cache python3 make g++ \
  && npm ci --ignore-scripts --maxsockets=3 \
  && apk del python3 make g++
@@ -15,7 +17,8 @@ FROM node:24-alpine AS builder
 
 WORKDIR /app
 ENV HUSKY=0 CI=1 NODE_OPTIONS=--max-old-space-size=1024
-RUN apk upgrade --no-cache
+RUN sed -i 's#https://dl-cdn.alpinelinux.org/alpine#https://mirror.arvancloud.ir/alpine#g' /etc/apk/repositories \
+ && apk upgrade --no-cache
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
@@ -30,7 +33,8 @@ ENV NODE_ENV=production
 ENV NODE_OPTIONS=--max-old-space-size=384
 
 WORKDIR /app
-RUN apk upgrade --no-cache \
+RUN sed -i 's#https://dl-cdn.alpinelinux.org/alpine#https://mirror.arvancloud.ir/alpine#g' /etc/apk/repositories \
+ && apk upgrade --no-cache \
  && addgroup -g 1001 -S nodejs \
  && adduser -S nestjs -u 1001 -G nodejs
 
