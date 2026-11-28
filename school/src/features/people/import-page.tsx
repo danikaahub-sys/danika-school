@@ -4,9 +4,9 @@ import { t } from '@/i18n/t'
 import { PageHeader } from '@/components/page-header'
 import { StepWizard } from '@/components/step-wizard'
 import { SimpleTable } from '@/components/simple-table'
+import { StatusBadge } from '@/components/status-badge'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 
 const STEPS = [
   t('people.import.upload'),
@@ -34,9 +34,9 @@ export function ImportPage() {
           rows={SAMPLE.map((row) => [
             ...row.slice(0, 4),
             row[4] === 'error' ? (
-              <Badge variant='destructive'>{t('common.error')}</Badge>
+              <StatusBadge tone='bad'>{t('common.error')}</StatusBadge>
             ) : (
-              <Badge>{t('common.done')}</Badge>
+              <StatusBadge tone='good'>{t('common.done')}</StatusBadge>
             ),
           ])}
         />

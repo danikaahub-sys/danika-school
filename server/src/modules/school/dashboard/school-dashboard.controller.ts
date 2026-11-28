@@ -16,6 +16,12 @@ class GranularityQueryDto {
     granularity: 'day' | 'week' | 'month' = 'day';
 }
 
+class RangeQueryDto {
+    @IsOptional()
+    @IsIn(['day', 'week', 'month'])
+    range: 'day' | 'week' | 'month' = 'day';
+}
+
 @ApiTags('school.dashboard')
 @ApiBearerAuth('accessToken')
 @SchoolGuards()
@@ -35,6 +41,13 @@ export class SchoolDashboardController {
     @ApiEndpoint({ summary: 'Role-shaped home' })
     home(@Ctx() ctx: SchoolContext) {
         return this.dashboard.home(ctx);
+    }
+
+    @Get('dashboard/overview')
+    @RequirePermission('home.dashboard.view')
+    @ApiEndpoint({ summary: 'Manager period overview' })
+    overview(@Ctx() ctx: SchoolContext, @Query() query: RangeQueryDto) {
+        return this.dashboard.overview(ctx, query.range);
     }
 
     @Get('stats/attendance')

@@ -1,16 +1,24 @@
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { t } from '@/i18n/t'
 import { weekdayName, formatJalali } from '@/lib/date'
+import { toFaDigits } from '@/lib/fa-text'
 import { PageHeader } from '@/components/page-header'
 import { QueryGate } from '@/components/query-gate'
 import { SimpleTable } from '@/components/simple-table'
+import { StatusBadge } from '@/components/status-badge'
+import { TileGrid } from '@/components/tile-grid'
 import { SearchTabs } from '@/components/search-tabs'
 import { JalaliDatePicker } from '@/components/jalali-date-picker'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSetup } from './api'
-import { useState } from 'react'
+
+function classCount(count: number): string {
+  return t('setup.classCount', { n: toFaDigits(count) })
+}
 
 const TABS = [
   ['years', 'setup.years'],
@@ -49,24 +57,50 @@ export function SetupPage({ tab }: { tab?: string }) {
             </TabsList>
             <TabsContent value='years'>
               <SimpleTable
-                columns={[t('setup.years'), t('setup.active')]}
-                rows={data.years.map((year) => [year.label, year.active ? t('common.yes') : t('common.no')])}
+                columns={[t('setup.years'), t('people.status')]}
+                rows={data.years.map((year) => [
+                  year.label,
+                  year.active ? (
+                    <StatusBadge key={year.id} tone='good'>
+                      {t('setup.active')}
+                    </StatusBadge>
+                  ) : (
+                    '—'
+                  ),
+                ])}
               />
             </TabsContent>
             <TabsContent value='grades'>
-              <SimpleTable columns={[t('setup.grades')]} rows={data.grades.map((grade) => [grade.name])} />
+              <TileGrid
+                items={data.grades.map((grade) => ({
+                  id: grade.id,
+                  title: grade.name,
+                  hint: classCount(data.classes.filter((item) => item.gradeId === grade.id).length),
+                }))}
+              />
             </TabsContent>
             <TabsContent value='classes'>
               <SimpleTable
-                columns={[t('setup.grades'), t('setup.classes')]}
+                columns={[t('setup.classes'), t('setup.grades'), t('setup.subjects')]}
                 rows={data.classes.map((item) => [
-                  data.grades.find((grade) => grade.id === item.gradeId)?.name ?? '',
                   item.name,
+                  data.grades.find((grade) => grade.id === item.gradeId)?.name ?? '—',
+                  toFaDigits(
+                    data.assignments.filter((assignment) => assignment.classId === item.id).length
+                  ),
                 ])}
               />
             </TabsContent>
             <TabsContent value='subjects'>
-              <SimpleTable columns={[t('setup.subjects')]} rows={data.subjects.map((item) => [item.name])} />
+              <TileGrid
+                items={data.subjects.map((subject) => ({
+                  id: subject.id,
+                  title: subject.name,
+                  hint: classCount(
+                    data.assignments.filter((assignment) => assignment.subjectId === subject.id).length
+                  ),
+                }))}
+              />
             </TabsContent>
             <TabsContent value='assignments'>
               <SimpleTable
@@ -103,8 +137,12 @@ export function SetupPage({ tab }: { tab?: string }) {
               <CalendarTab />
             </TabsContent>
             <TabsContent value='policy'>
-              <p className='text-sm'>{t('setup.scale')}</p>
-              <p className='mt-2 max-w-xl text-sm text-muted-foreground'>{t('setup.weightHint')}</p>
+              <Card className='max-w-2xl'>
+                <CardHeader>
+                  <CardTitle>{t('setup.scale')}</CardTitle>
+                  <CardDescription>{t('setup.weightHint')}</CardDescription>
+                </CardHeader>
+              </Card>
             </TabsContent>
           </SearchTabs>
         ) : null}

@@ -10,10 +10,13 @@ import {
   type ModuleId,
 } from '@/features/access/permissions'
 import { t } from '@/i18n/t'
-import { displayName, type AttentionCounts } from '@/mocks'
+import { formatJalali } from '@/lib/date'
+import { displayName, type AttentionCounts, type Position } from '@/mocks'
 import { PageHeader } from '@/components/page-header'
 import { QueryGate } from '@/components/query-gate'
 import { SimpleTable } from '@/components/simple-table'
+import { PersonStatusBadge } from '@/components/status-badge'
+import { TileGrid } from '@/components/tile-grid'
 import { SearchTabs } from '@/components/search-tabs'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -63,30 +66,50 @@ export function AdminPage({ tab }: { tab?: string }) {
                   const position = query.data.positions.find((item) => item.id === membership.positionId)
                   return [
                     person ? displayName(person) : membership.personId,
-                    position ? t(`role.${position.baseRole}` as 'role.principal') : '',
-                    t(`people.status.${membership.inviteStatus === 'invited' ? 'invited' : 'active'}`),
+                    position ? t(`role.${position.baseRole}` as 'role.principal') : '—',
+                    <PersonStatusBadge
+                      key={membership.id}
+                      status={membership.inviteStatus === 'invited' ? 'invited' : 'active'}
+                    />,
                   ]
                 })}
               />
             </TabsContent>
             <TabsContent value='positions'>
-              <PositionsEditor names={query.data.positions.map((item) => item.name)} />
+              <PositionsEditor positions={query.data.positions} />
             </TabsContent>
             <TabsContent value='invitations'>
-              <div className='mb-3 flex flex-wrap gap-2'>
-                <Input placeholder={t('auth.phonePlaceholder')} className='max-w-xs min-h-11' />
-                <Button className='min-h-11' onClick={() => toast.success(t('toast.invited'))}>
-                  {t('admin.invite')}
+              <div className='grid max-w-lg gap-3 rounded-xl border bg-card p-4'>
+                <div className='grid gap-2'>
+                  <Label htmlFor='invite-phone'>{t('auth.phone')}</Label>
+                  <div className='flex flex-wrap gap-2'>
+                    <Input
+                      id='invite-phone'
+                      placeholder={t('auth.phonePlaceholder')}
+                      className='min-h-11 flex-1'
+                    />
+                    <Button className='min-h-11' onClick={() => toast.success(t('toast.invited'))}>
+                      {t('admin.invite')}
+                    </Button>
+                  </div>
+                </div>
+                <Button
+                  variant='outline'
+                  className='min-h-11 justify-self-start'
+                  onClick={() => toast.success(t('admin.resend'))}
+                >
+                  {t('admin.resend')}
                 </Button>
               </div>
-              <Button variant='outline' className='min-h-11' onClick={() => toast.success(t('admin.resend'))}>
-                {t('admin.resend')}
-              </Button>
             </TabsContent>
             <TabsContent value='audit'>
               <SimpleTable
-                columns={[t('common.today'), t('people.name'), t('admin.audit')]}
-                rows={query.data.auditLog.map((item) => [item.at, item.actor, item.action])}
+                columns={[t('people.date'), t('people.name'), t('admin.audit')]}
+                rows={query.data.auditLog.map((item) => [
+                  item.at ? formatJalali(item.at) : '—',
+                  item.actor || '—',
+                  item.action,
+                ])}
               />
             </TabsContent>
             <TabsContent value='settings' className='grid max-w-lg gap-3'>
@@ -109,10 +132,10 @@ export function AdminPage({ tab }: { tab?: string }) {
   )
 }
 
-function PositionsEditor({ names }: { names: string[] }) {
+function PositionsEditor({ positions }: { positions: Position[] }) {
   const [query, setQuery] = useState('')
   const [baseRole, setBaseRole] = useState<BaseRole>('teacher')
-  const [name, setName] = useState(names[0] ?? '')
+  const [name, setName] = useState(positions[0]?.name ?? '')
   const modules = useMemo(
     () =>
       (Object.keys(CATALOG) as ModuleId[]).filter((mod) =>
@@ -132,7 +155,13 @@ function PositionsEditor({ names }: { names: string[] }) {
 
   return (
     <div className='grid gap-4'>
-      <SimpleTable columns={[t('admin.positions')]} rows={names.map((item) => [item])} />
+      <TileGrid
+        items={positions.map((item) => ({
+          id: item.id,
+          title: item.name,
+          hint: t(`role.${item.baseRole}`),
+        }))}
+      />
       <div className='grid gap-2 sm:max-w-xs'>
         <Label>{t('admin.positionName')}</Label>
         <Input value={name} onChange={(event) => setName(event.target.value)} className='min-h-11' />

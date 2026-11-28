@@ -4,6 +4,8 @@ import {
     BaseRole,
     ImportJobStatus,
     MarkStatus,
+    PersonKind,
+    PersonStatus,
     ReceiptStatus,
     SessionStatus,
 } from '@prisma/client';
@@ -13,8 +15,34 @@ import { DatabaseService } from 'src/common/database/services/database.service';
 
 import type { SchoolContext } from '../access/school-context';
 import { ScopeService } from '../access/scope.service';
+import {
+    eachYmd,
+    periodBounds,
+    type OverviewRange,
+} from './school-dashboard.period';
 
 const STATS_TTL = 60;
+
+type StatusCount = Partial<Record<string, number>>;
+
+function rateFromCounts(counts: StatusCount): {
+    present: number;
+    absent: number;
+    late: number;
+    excused: number;
+    unmarked: number;
+    rate: number;
+} {
+    const present = counts[AttendanceStatus.PRESENT] ?? 0;
+    const absent = counts[AttendanceStatus.ABSENT] ?? 0;
+    const late = counts[AttendanceStatus.LATE] ?? 0;
+    const excused = counts[AttendanceStatus.EXCUSED] ?? 0;
+    const unmarked = counts[AttendanceStatus.UNMARKED] ?? 0;
+    const marked = present + absent + late + excused;
+    const rate =
+        marked === 0 ? 0 : Math.round((present / marked) * 10000) / 100;
+    return { present, absent, late, excused, unmarked, rate };
+}
 
 @Injectable()
 export class SchoolDashboardService {
@@ -85,8 +113,12 @@ export class SchoolDashboardService {
                 },
                 include: {
                     assignment: {
-                        include: { class: { include: { grade: true } } },
+                        include: {
+                            class: { include: { grade: true } },
+                            subject: true,
+                        },
                     },
+                    period: true,
                 },
                 orderBy: { date: 'desc' },
                 take: 20,
@@ -150,6 +182,325 @@ export class SchoolDashboardService {
             grades,
             className: teacherClasses[0]?.label ?? '',
             teacherClasses,
+        };
+    }
+
+    async overview(ctx: SchoolContext, range: OverviewRange = 'day') {
+        const bounds = periodBounds(range);
+        return this.cached(
+            ctx,
+            `overview:${range}:${bounds.fromYmd}`,
+            async () => this.buildOverview(ctx, bounds)
+        );
+    }
+
+    private async buildOverview(
+        ctx: SchoolContext,
+        bounds: ReturnType<typeof periodBounds>
+    ) {
+        const dateInRange = { gte: bounds.from, lte: bounds.to };
+        const dateInPrev = { gte: bounds.prevFrom, lte: bounds.prevTo };
+        const dateInTrend = {
+            gte: new Date(`${bounds.trendFromYmd}T00:00:00.000Z`),
+            lte: new Date(`${bounds.trendToYmd}T00:00:00.000Z`),
+        };
+        const createdEnd = new Date(bounds.to);
+        createdEnd.setUTCDate(createdEnd.getUTCDate() + 1);
+        const createdInRange = {
+            gte: bounds.from,
+            lt: createdEnd,
+        };
+
+        const sessionYear = { assignment: { yearId: ctx.yearId } };
+
+        const [
+            studentCount,
+            staffCount,
+            classCount,
+            attendanceGroups,
+            prevAttendanceGroups,
+            sessionGroups,
+            prevSessionGroups,
+            staffGroups,
+            collected,
+            prevCollected,
+            pending,
+            homeworkDue,
+            announcementsSent,
+            absentRows,
+            trendAttendance,
+            trendReceipts,
+        ] = await Promise.all([
+            this.db.enrollment.count({
+                where: { schoolId: ctx.schoolId, yearId: ctx.yearId },
+            }),
+            this.db.person.count({
+                where: {
+                    schoolId: ctx.schoolId,
+                    kind: PersonKind.STAFF,
+                    deletedAt: null,
+                    status: PersonStatus.ACTIVE,
+                },
+            }),
+            this.db.schoolClass.count({
+                where: {
+                    schoolId: ctx.schoolId,
+                    yearId: ctx.yearId,
+                    deletedAt: null,
+                },
+            }),
+            this.db.attendanceRecord.groupBy({
+                by: ['status'],
+                where: {
+                    schoolId: ctx.schoolId,
+                    session: { ...sessionYear, date: dateInRange },
+                },
+                _count: { _all: true },
+            }),
+            this.db.attendanceRecord.groupBy({
+                by: ['status'],
+                where: {
+                    schoolId: ctx.schoolId,
+                    session: { ...sessionYear, date: dateInPrev },
+                },
+                _count: { _all: true },
+            }),
+            this.db.teachingSession.groupBy({
+                by: ['status'],
+                where: {
+                    schoolId: ctx.schoolId,
+                    date: dateInRange,
+                    ...sessionYear,
+                },
+                _count: { _all: true },
+            }),
+            this.db.teachingSession.groupBy({
+                by: ['status'],
+                where: {
+                    schoolId: ctx.schoolId,
+                    date: dateInPrev,
+                    ...sessionYear,
+                },
+                _count: { _all: true },
+            }),
+            this.db.staffAttendance.groupBy({
+                by: ['status'],
+                where: { schoolId: ctx.schoolId, date: dateInRange },
+                _count: { _all: true },
+            }),
+            this.db.receipt.aggregate({
+                where: {
+                    schoolId: ctx.schoolId,
+                    status: ReceiptStatus.POSTED,
+                    date: dateInRange,
+                },
+                _sum: { amountIrr: true },
+                _count: { _all: true },
+            }),
+            this.db.receipt.aggregate({
+                where: {
+                    schoolId: ctx.schoolId,
+                    status: ReceiptStatus.POSTED,
+                    date: dateInPrev,
+                },
+                _sum: { amountIrr: true },
+                _count: { _all: true },
+            }),
+            this.db.receipt.aggregate({
+                where: {
+                    schoolId: ctx.schoolId,
+                    status: ReceiptStatus.PENDING,
+                    date: dateInRange,
+                },
+                _sum: { amountIrr: true },
+                _count: { _all: true },
+            }),
+            this.db.homework.count({
+                where: {
+                    schoolId: ctx.schoolId,
+                    published: true,
+                    dueOn: dateInRange,
+                },
+            }),
+            this.db.announcement.count({
+                where: {
+                    schoolId: ctx.schoolId,
+                    createdAt: createdInRange,
+                },
+            }),
+            this.db.attendanceRecord.findMany({
+                where: {
+                    schoolId: ctx.schoolId,
+                    status: AttendanceStatus.ABSENT,
+                    session: { ...sessionYear, date: dateInRange },
+                },
+                select: {
+                    session: {
+                        select: {
+                            assignment: {
+                                select: {
+                                    class: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                            grade: { select: { name: true } },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            }),
+            this.db.attendanceRecord.findMany({
+                where: {
+                    schoolId: ctx.schoolId,
+                    session: { ...sessionYear, date: dateInTrend },
+                },
+                select: {
+                    status: true,
+                    session: { select: { date: true } },
+                },
+            }),
+            this.db.receipt.findMany({
+                where: {
+                    schoolId: ctx.schoolId,
+                    status: ReceiptStatus.POSTED,
+                    date: dateInTrend,
+                },
+                select: { date: true, amountIrr: true },
+            }),
+        ]);
+
+        const toCountMap = (
+            rows: Array<{ status: string; _count: { _all: number } }>
+        ): StatusCount => {
+            const map: StatusCount = {};
+            for (const row of rows) map[row.status] = row._count._all;
+            return map;
+        };
+
+        const attendance = rateFromCounts(toCountMap(attendanceGroups));
+        const prevAttendance = rateFromCounts(toCountMap(prevAttendanceGroups));
+
+        const sessionMap = toCountMap(sessionGroups);
+        const prevSessionMap = toCountMap(prevSessionGroups);
+        const sumCounts = (map: StatusCount): number =>
+            Object.values(map).reduce<number>((sum, n) => sum + (n ?? 0), 0);
+        const sessionTotal = sumCounts(sessionMap);
+        const prevSessionTotal = sumCounts(prevSessionMap);
+        const submitted = sessionMap[SessionStatus.SUBMITTED] ?? 0;
+        const prevSubmitted = prevSessionMap[SessionStatus.SUBMITTED] ?? 0;
+
+        const staffMap = toCountMap(staffGroups);
+        const classAbsent = new Map<
+            string,
+            { classId: string; label: string; absent: number }
+        >();
+        for (const row of absentRows) {
+            const cls = row.session.assignment.class;
+            const current = classAbsent.get(cls.id) ?? {
+                classId: cls.id,
+                label: `${cls.grade.name} ${cls.name}`.trim(),
+                absent: 0,
+            };
+            current.absent += 1;
+            classAbsent.set(cls.id, current);
+        }
+        const absencesByClass = [...classAbsent.values()]
+            .sort((a, b) => b.absent - a.absent)
+            .slice(0, 5);
+
+        const days = eachYmd(bounds.trendFromYmd, bounds.trendToYmd);
+        const attendanceByDay = new Map<
+            string,
+            { present: number; marked: number }
+        >();
+        for (const day of days) {
+            attendanceByDay.set(day, { present: 0, marked: 0 });
+        }
+        for (const row of trendAttendance) {
+            const day = row.session.date.toISOString().slice(0, 10);
+            const bucket = attendanceByDay.get(day);
+            if (!bucket) continue;
+            if (row.status !== AttendanceStatus.UNMARKED) {
+                bucket.marked += 1;
+            }
+            if (row.status === AttendanceStatus.PRESENT) {
+                bucket.present += 1;
+            }
+        }
+        const collectedByDay = new Map<string, bigint>();
+        for (const day of days) collectedByDay.set(day, 0n);
+        for (const row of trendReceipts) {
+            const day = row.date.toISOString().slice(0, 10);
+            collectedByDay.set(
+                day,
+                (collectedByDay.get(day) ?? 0n) + row.amountIrr
+            );
+        }
+        const trend = days.map(date => {
+            const bucket = attendanceByDay.get(date) ?? {
+                present: 0,
+                marked: 0,
+            };
+            return {
+                date,
+                attendanceRate:
+                    bucket.marked === 0
+                        ? 0
+                        : Math.round((bucket.present / bucket.marked) * 10000) /
+                          100,
+                collectedIrr: String(collectedByDay.get(date) ?? 0n),
+            };
+        });
+
+        return {
+            range: {
+                key: bounds.key,
+                from: bounds.fromYmd,
+                to: bounds.toYmd,
+                label: bounds.label,
+            },
+            headcount: {
+                students: studentCount,
+                staff: staffCount,
+                classes: classCount,
+            },
+            attendance: {
+                present: attendance.present,
+                absent: attendance.absent,
+                late: attendance.late,
+                excused: attendance.excused,
+                unmarked: attendance.unmarked,
+                rate: attendance.rate,
+                prevRate: prevAttendance.rate,
+                prevAbsent: prevAttendance.absent,
+            },
+            sessions: {
+                total: sessionTotal,
+                submitted,
+                pending: sessionTotal - submitted,
+                prevTotal: prevSessionTotal,
+                prevSubmitted,
+            },
+            staff: {
+                present: staffMap[AttendanceStatus.PRESENT] ?? 0,
+                absent: staffMap[AttendanceStatus.ABSENT] ?? 0,
+            },
+            finance: {
+                collectedIrr: String(collected._sum.amountIrr ?? 0n),
+                prevCollectedIrr: String(prevCollected._sum.amountIrr ?? 0n),
+                postedCount: collected._count._all,
+                pendingCount: pending._count._all,
+                pendingIrr: String(pending._sum.amountIrr ?? 0n),
+            },
+            activity: {
+                homeworkDue,
+                announcementsSent,
+            },
+            absencesByClass,
+            trend,
         };
     }
 

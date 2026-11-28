@@ -1,7 +1,9 @@
 import { Link } from '@tanstack/react-router'
+import { ChevronLeft } from 'lucide-react'
 import { t } from '@/i18n/t'
 import { weekdayName } from '@/lib/date'
 import { useSession } from '@/hooks/use-session'
+import { EmptyState } from '@/components/empty-state'
 import { PageHeader } from '@/components/page-header'
 import { QueryGate } from '@/components/query-gate'
 import { SimpleTable } from '@/components/simple-table'
@@ -18,6 +20,7 @@ export function ClassroomHome() {
   const isLearner = role === 'student' || role === 'guardian'
   const classId = query.data?.[0]?.id ?? ''
   const workspace = useClassWorkspace(classId)
+  const classes = query.data ?? []
 
   return (
     <Main>
@@ -63,17 +66,25 @@ export function ClassroomHome() {
         </div>
       ) : (
         <QueryGate query={query}>
-          <SimpleTable
-            columns={[t('setup.classes'), '']}
-            rows={(query.data ?? []).map((item) => [
-              item.label,
-              <Button key={item.id} asChild size='sm' className='min-h-11'>
-                <Link to='/classroom/$classId' params={{ classId: item.id }}>
-                  {t('common.openMenu')}
-                </Link>
-              </Button>,
-            ])}
-          />
+          {classes.length === 0 ? (
+            <EmptyState description={t('classroom.pick')} />
+          ) : (
+            <div className='grid gap-2 sm:grid-cols-2'>
+              {classes.map((item) => (
+                <Button
+                  key={item.id}
+                  asChild
+                  variant='outline'
+                  className='h-auto min-h-14 w-full justify-between gap-3 px-4 py-3 text-start'
+                >
+                  <Link to='/classroom/$classId' params={{ classId: item.id }}>
+                    <span className='truncate font-medium'>{item.label}</span>
+                    <ChevronLeft className='size-4 shrink-0 text-muted-foreground' />
+                  </Link>
+                </Button>
+              ))}
+            </div>
+          )}
         </QueryGate>
       )}
     </Main>

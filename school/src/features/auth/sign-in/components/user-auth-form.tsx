@@ -97,7 +97,13 @@ export function UserAuthForm({ className, redirectTo }: UserAuthFormProps) {
                 <FormItem>
                   <FormLabel>{t('auth.identifier')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t('auth.identifierPlaceholder')} {...field} />
+                    <Input
+                      placeholder={t('auth.identifierPlaceholder')}
+                      {...field}
+                      dir='rtl'
+                      data-auth-rtl=''
+                      className='text-right'
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -139,7 +145,14 @@ export function UserAuthForm({ className, redirectTo }: UserAuthFormProps) {
                 <FormItem>
                   <FormLabel>{t('auth.phone')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t('auth.phonePlaceholder')} {...field} />
+                    <Input
+                      placeholder={t('auth.phonePlaceholder')}
+                      {...field}
+                      dir='rtl'
+                      data-auth-rtl=''
+                      className='text-right'
+                      inputMode='tel'
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

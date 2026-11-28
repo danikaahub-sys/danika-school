@@ -1,15 +1,16 @@
 import { t } from '@/i18n/t'
+import { formatJalali } from '@/lib/date'
 import { formatScore, toFaDigits } from '@/lib/fa-text'
 import { useSession } from '@/hooks/use-session'
 import { PageHeader } from '@/components/page-header'
 import { QueryGate } from '@/components/query-gate'
 import { SimpleTable } from '@/components/simple-table'
+import { AttendanceBadge, ScoreBadge, StatusBadge } from '@/components/status-badge'
 import { SearchTabs } from '@/components/search-tabs'
 import { StatCard } from '@/components/stat-card'
 import { MoneyText } from '@/components/money'
 import { Main } from '@/components/layout/main'
 import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
 import { Can } from '@/components/can'
 import { usePerson, type PersonDetail } from './api'
 
@@ -73,9 +74,9 @@ export function PersonPage({ personId, tab }: { personId: string; tab?: string }
                     link.otherPhone ?? '—',
                     link.academicVisible ? t('common.yes') : t('common.no'),
                     link.financialVisible ? t('common.yes') : t('common.no'),
-                    <Badge key={link.id} variant={link.verified ? 'secondary' : 'destructive'}>
+                    <StatusBadge key={link.id} tone={link.verified ? 'good' : 'warn'}>
                       {link.verified ? t('people.verified') : t('people.unverified')}
-                    </Badge>,
+                    </StatusBadge>,
                   ])}
                   empty={t('people.emptyGuardians')}
                 />
@@ -84,8 +85,8 @@ export function PersonPage({ personId, tab }: { personId: string; tab?: string }
                 <SimpleTable
                   columns={[t('people.date'), t('classroom.attendance')]}
                   rows={data.attendance.map((row) => [
-                    row.date ? toFaDigits(row.date) : '—',
-                    t(`classroom.${row.status}`),
+                    row.date ? formatJalali(row.date) : '—',
+                    <AttendanceBadge key={row.id ?? row.sessionId} status={row.status} />,
                   ])}
                   empty={t('empty.attendance')}
                 />
@@ -96,9 +97,7 @@ export function PersonPage({ personId, tab }: { personId: string; tab?: string }
                   rows={data.scores.map((item) => [
                     item.title || '—',
                     formatScore(item.earned, item.maximum),
-                    item.status === 'published'
-                      ? t('common.publish')
-                      : t(`classroom.${item.status}` as 'classroom.draft' | 'classroom.missing' | 'classroom.exempt'),
+                    <ScoreBadge key={item.id} status={item.status} />,
                   ])}
                   empty={t('people.record.emptyScores')}
                 />
@@ -109,7 +108,7 @@ export function PersonPage({ personId, tab }: { personId: string; tab?: string }
                   rows={data.charges.map((item) => [
                     item.title,
                     <MoneyText key={item.id} irr={item.amountIrr} unit={school.moneyUnit} />,
-                    item.dueOn ? toFaDigits(item.dueOn) : '—',
+                    item.dueOn ? formatJalali(item.dueOn) : '—',
                   ])}
                   empty={t('people.record.emptyCharges')}
                 />

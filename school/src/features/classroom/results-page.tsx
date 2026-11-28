@@ -5,6 +5,7 @@ import { useSession } from '@/hooks/use-session'
 import { PageHeader } from '@/components/page-header'
 import { QueryGate } from '@/components/query-gate'
 import { SimpleTable } from '@/components/simple-table'
+import { ScoreBadge } from '@/components/status-badge'
 import { SearchTabs } from '@/components/search-tabs'
 import { Main } from '@/components/layout/main'
 import { Button } from '@/components/ui/button'
@@ -35,27 +36,34 @@ export function ResultsPage({ tab }: { tab?: string }) {
       />
       <QueryGate query={query}>
         <SearchTabs defaultValue={tab ?? 'publish'}>
-          <TabsList>
+          <TabsList className='mb-4'>
             {canPublish ? <TabsTrigger value='publish'>{t('classroom.publish')}</TabsTrigger> : null}
             <TabsTrigger value='cards'>{t('classroom.reportCards')}</TabsTrigger>
           </TabsList>
           <TabsContent value='publish'>
             <SimpleTable
-              columns={[t('people.name'), t('classroom.gradebook'), t('people.status')]}
+              columns={[
+                t('people.name'),
+                t('people.assessment'),
+                t('classroom.gradebook'),
+                t('people.status'),
+              ]}
               rows={rows.map((item) => [
                 item.studentName || item.studentId,
+                item.title || '—',
                 formatScore(item.earned, item.maximum),
-                item.status === 'published' ? t('common.publish') : t('classroom.draft'),
+                <ScoreBadge key={item.id} status={item.status} />,
               ])}
             />
           </TabsContent>
           <TabsContent value='cards'>
             <SimpleTable
-              columns={[t('people.name'), t('classroom.reportCards')]}
+              columns={[t('people.name'), t('people.assessment'), t('classroom.reportCards')]}
               rows={rows
                 .filter((item) => item.status === 'published')
                 .map((item) => [
                   item.studentName || item.studentId,
+                  item.title || '—',
                   formatScore(item.earned, item.maximum),
                 ])}
             />

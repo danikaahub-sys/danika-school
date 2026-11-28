@@ -2,12 +2,15 @@ import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { t } from '@/i18n/t'
+import { formatJalali } from '@/lib/date'
 import { toFaDigits } from '@/lib/fa-text'
 import { displayName } from '@/mocks'
 import { useSession } from '@/hooks/use-session'
 import { PageHeader } from '@/components/page-header'
 import { QueryGate } from '@/components/query-gate'
 import { SimpleTable } from '@/components/simple-table'
+import { StatCard } from '@/components/stat-card'
+import { ReceiptBadge } from '@/components/status-badge'
 import { MoneyInput, MoneyText } from '@/components/money'
 import { JalaliDatePicker } from '@/components/jalali-date-picker'
 import { SearchTabs } from '@/components/search-tabs'
@@ -28,6 +31,8 @@ export function FinancePage({ tab }: { tab?: string }) {
     () => (studentsQuery.data ?? []).filter((person) => person.status === 'active'),
     [studentsQuery.data]
   )
+  const pendingCount =
+    query.data?.receipts.filter((receipt) => receipt.status === 'pending').length ?? 0
 
   return (
     <Main>
@@ -48,9 +53,10 @@ export function FinancePage({ tab }: { tab?: string }) {
             </TabsList>
             <TabsContent value='plans'>
               <SimpleTable
-                columns={[t('setup.grades'), t('finance.amount')]}
+                columns={[t('setup.grades'), t('finance.plans'), t('finance.amount')]}
                 rows={query.data.tuitionPlans.map((plan) => [
-                  plan.gradeName,
+                  plan.gradeName || '—',
+                  plan.title || '—',
                   <MoneyText key={plan.id} irr={plan.amountIrr} unit={unit} />,
                 ])}
               />
@@ -71,13 +77,21 @@ export function FinancePage({ tab }: { tab?: string }) {
             </TabsContent>
             <TabsContent value='queue'>
               <SimpleTable
-                columns={[t('people.name'), t('finance.ref'), t('finance.amount'), t('people.status'), '']}
+                columns={[
+                  t('people.name'),
+                  t('finance.ref'),
+                  t('people.date'),
+                  t('finance.amount'),
+                  t('people.status'),
+                  '',
+                ]}
                 rows={query.data.receipts.map((receipt) => [
                   receipt.studentName || receipt.studentId,
                   receipt.ref,
+                  receipt.date ? formatJalali(receipt.date) : '—',
                   <MoneyText key={receipt.id} irr={receipt.amountIrr} unit={unit} />,
-                  receipt.status === 'pending' ? t('finance.pending') : t('finance.posted'),
-                  <div key={`${receipt.id}-a`} className='flex flex-wrap gap-2'>
+                  <ReceiptBadge key={`${receipt.id}-status`} status={receipt.status} />,
+                  <div key={`${receipt.id}-a`} className='flex flex-wrap justify-end gap-2'>
                     <Button asChild size='sm' variant='outline' className='min-h-11'>
                       <Link to='/finance/students/$studentId' params={{ studentId: receipt.studentId }}>
                         {t('finance.ledger')}
@@ -110,10 +124,22 @@ export function FinancePage({ tab }: { tab?: string }) {
               <BatchPanel count={students.length} unit={unit} />
             </TabsContent>
             <TabsContent value='reports'>
-              <p className='text-sm'>
-                {t('finance.charge')}: {toFaDigits(query.data.charges.length)} · {t('finance.receipt')}:{' '}
-                {toFaDigits(query.data.receipts.length)}
-              </p>
+              <div className='grid gap-3 sm:grid-cols-3'>
+                <StatCard
+                  title={t('finance.charge')}
+                  value={toFaDigits(query.data.charges.length)}
+                />
+                <StatCard
+                  title={t('finance.receipt')}
+                  value={toFaDigits(query.data.receipts.length)}
+                />
+                <StatCard
+                  title={t('finance.pending')}
+                  value={toFaDigits(pendingCount)}
+                  tone={pendingCount > 0 ? 'warn' : 'default'}
+                  link={{ to: '/finance', search: { tab: 'queue' } }}
+                />
+              </div>
             </TabsContent>
           </SearchTabs>
         ) : null}
@@ -126,7 +152,7 @@ function BatchPanel({ count, unit }: { count: number; unit: 'irr' | 'toman' }) {
   const [amount, setAmount] = useState(0)
   const [due, setDue] = useState<Date | undefined>()
   return (
-    <div className='grid max-w-lg gap-4'>
+    <div className='grid max-w-lg gap-4 rounded-xl border bg-card p-4'>
       <p className='text-sm text-muted-foreground'>
         {t('finance.batchPreviewCount', { n: toFaDigits(count) })}
       </p>

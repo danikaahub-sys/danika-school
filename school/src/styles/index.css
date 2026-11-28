@@ -81,6 +81,15 @@
       font-size: 16px !important;
     }
   }
+
+  /* Keep auth fields RTL even when browser autofill forces LTR */
+  input[data-auth-rtl],
+  input[data-auth-rtl]:-webkit-autofill,
+  input[data-auth-rtl]:-webkit-autofill:hover,
+  input[data-auth-rtl]:-webkit-autofill:focus {
+    direction: rtl !important;
+    text-align: right !important;
+  }
 }
 
 @utility container {

@@ -102,10 +102,10 @@ export async function finishGlobalAuth(tokens: TokenUser) {
   auth.setAccessToken(tokens.accessToken)
   auth.setRefreshToken(tokens.refreshToken)
   const memberships = await listMemberships()
-  const preferred = memberships.find((item) => item.status === 'ACTIVE')
-  if (!preferred) {
+  const active = memberships.filter((item) => item.status === 'ACTIVE')
+  if (active.length !== 1) {
     return { memberships, entered: false as const }
   }
-  await enterSchool(preferred.schoolId)
+  await enterSchool(active[0].schoolId)
   return { memberships, entered: true as const }
 }

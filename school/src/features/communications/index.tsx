@@ -7,6 +7,7 @@ import { QueryGate } from '@/components/query-gate'
 import { SimpleTable } from '@/components/simple-table'
 import { SearchTabs } from '@/components/search-tabs'
 import { Main } from '@/components/layout/main'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -45,7 +46,7 @@ export function CommunicationsPage() {
           {readOnly ? null : <TabsTrigger value='templates'>{t('comms.templates')}</TabsTrigger>}
           <TabsTrigger value='log'>{t('comms.log')}</TabsTrigger>
         </TabsList>
-        <TabsContent value='compose' className='grid max-w-xl gap-3 pt-4'>
+        <TabsContent value='compose' className='mt-4 grid max-w-xl gap-3 rounded-xl border bg-card p-4'>
           <div className='grid gap-2'>
             <Label>{t('quick.announcement')}</Label>
             <Input value={title} onChange={(event) => setTitle(event.target.value)} />
@@ -97,7 +98,9 @@ export function CommunicationsPage() {
             columns={[t('comms.templates'), t('comms.channel'), '']}
             rows={(query.data?.templates ?? []).map((item) => [
               item.title,
-              t(`comms.channel.${item.channel}`),
+              <Badge key={`${item.id}-channel`} variant='secondary'>
+                {t(`comms.channel.${item.channel}`)}
+              </Badge>,
               <Button
                 key={item.id}
                 size='sm'
@@ -118,11 +121,13 @@ export function CommunicationsPage() {
         <TabsContent value='log' className='pt-4'>
           <QueryGate query={query}>
             <SimpleTable
-              columns={[t('quick.announcement'), t('comms.channel'), t('common.today')]}
+              columns={[t('quick.announcement'), t('comms.channel'), t('people.date')]}
               rows={(query.data?.announcements ?? []).map((item) => [
                 item.title,
-                t(`comms.channel.${item.channel}`),
-                formatJalali(item.sentAt),
+                <Badge key={item.id} variant='secondary'>
+                  {t(`comms.channel.${item.channel}`)}
+                </Badge>,
+                item.sentAt ? formatJalali(item.sentAt) : '—',
               ])}
             />
           </QueryGate>

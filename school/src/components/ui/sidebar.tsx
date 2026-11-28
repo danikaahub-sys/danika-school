@@ -378,25 +378,18 @@ function SidebarSeparator({
 
 function SidebarContent({
   className,
-  children,
   ...props
 }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot='sidebar-content'
       data-sidebar='content'
-      // LTR scroll container keeps the scrollbar on the physical right in RTL UIs.
-      dir='ltr'
       className={cn(
         'flex min-h-0 flex-1 flex-col overflow-auto group-data-[collapsible=icon]:overflow-hidden',
         className
       )}
       {...props}
-    >
-      <div dir='rtl' className='flex min-h-0 flex-1 flex-col'>
-        {children}
-      </div>
-    </div>
+    />
   )
 }
 

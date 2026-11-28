@@ -136,7 +136,14 @@ export function ForgotPasswordForm({
             <FormItem>
               <FormLabel>{t('auth.phone')}</FormLabel>
               <FormControl>
-                <Input placeholder={t('auth.phonePlaceholder')} {...field} />
+                <Input
+                  placeholder={t('auth.phonePlaceholder')}
+                  {...field}
+                  dir='rtl'
+                  data-auth-rtl=''
+                  className='text-right'
+                  inputMode='tel'
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

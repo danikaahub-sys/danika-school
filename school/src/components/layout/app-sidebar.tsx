@@ -29,13 +29,13 @@ import { NavUser } from './nav-user'
 import { SchoolSwitcher } from './school-switcher'
 import { type NavGroup, type NavLink } from './types'
 
-const OPEN_KEY = 'danika.rail.open'
+const OPEN_KEY = 'danika.rail.open.v2'
 
 function readOpen(): string {
   try {
-    return localStorage.getItem(OPEN_KEY) ?? 'all'
+    return localStorage.getItem(OPEN_KEY) ?? ''
   } catch {
-    return 'all'
+    return ''
   }
 }
 

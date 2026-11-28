@@ -33,8 +33,15 @@ export type NamedStaffDay = {
   personName: string
 }
 
-function mapSession(row: SessionRow): TeachingSession & { classLabel: string } {
+type MappedSession = TeachingSession & {
+  classLabel: string
+  presentCount: number
+  absentCount: number
+}
+
+function mapSession(row: SessionRow): MappedSession {
   const classId = row.classId ?? row.assignment?.classId ?? ''
+  const marks = (row.attendance ?? []).map((mark) => lower<AttendanceStatus>(String(mark.status)))
   return {
     id: row.id,
     classId,
@@ -45,6 +52,8 @@ function mapSession(row: SessionRow): TeachingSession & { classLabel: string } {
     status: lower(String(row.status)),
     note: row.note,
     classLabel: classLabelFrom(row.assignment?.class?.grade, row.assignment?.class?.name) || classId,
+    presentCount: marks.filter((status) => status === 'present').length,
+    absentCount: marks.filter((status) => status === 'absent').length,
   }
 }
 

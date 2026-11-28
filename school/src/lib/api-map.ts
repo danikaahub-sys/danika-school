@@ -31,8 +31,15 @@ export function classLabelFrom(
   grade?: { name?: string } | string | null,
   name?: string
 ): string {
-  const gradeName = typeof grade === 'string' ? grade : (grade?.name ?? '')
-  return [gradeName, name].filter(Boolean).join(' ')
+  const gradeName = (typeof grade === 'string' ? grade : (grade?.name ?? '')).trim()
+  const className = (name ?? '').trim()
+  if (!gradeName) return className
+  if (!className) return gradeName
+  // Seed/data often stores class name as "هفتم الف" while grade is "هفتم".
+  if (className === gradeName || className.startsWith(`${gradeName} `)) {
+    return className
+  }
+  return `${gradeName} ${className}`
 }
 
 export function mapPerson(row: Record<string, unknown>): Person {

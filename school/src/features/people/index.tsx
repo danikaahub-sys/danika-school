@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/page-header'
 import { FilterBar } from '@/components/filter-bar'
 import { QueryGate } from '@/components/query-gate'
 import { SimpleTable } from '@/components/simple-table'
+import { PersonStatusBadge } from '@/components/status-badge'
 import { ExportToolbar } from '@/components/data-table/export-toolbar'
 import { SearchTabs } from '@/components/search-tabs'
 import { Main } from '@/components/layout/main'
@@ -49,7 +50,7 @@ export function PeoplePage({ tab, create }: { tab?: string; create?: boolean }) 
         }
       />
       <SearchTabs defaultValue={tab ?? 'students'}>
-        <TabsList>
+        <TabsList className='mb-4'>
           {TABS.map((item) => (
             <TabsTrigger key={item.id} value={item.id}>
               {t(item.label)}
@@ -103,7 +104,7 @@ function personRow(person: DirectoryPerson): React.ReactNode[] {
     person.nationalId ?? '—',
     person.phone ?? '—',
     person.classLabel || '—',
-    t(`people.status.${person.status}`),
+    <PersonStatusBadge key={`${person.id}-status`} status={person.status} />,
     <Button key={person.id} asChild size='sm' variant='outline' className='min-h-11'>
       <Link to='/people/$personId' params={{ personId: person.id }}>
         {t('common.view')}
